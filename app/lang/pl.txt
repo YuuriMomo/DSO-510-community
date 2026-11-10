@@ -1,0 +1,354 @@
+# DSO-510 Link - tłumaczenie polskie (wbudowane w program).
+# Format: tekst angielski = tłumaczenie. Poprawioną wersję zapisz jako lang\pl.txt obok DSO-510-Link.exe:
+# program wczyta ją przy wyborze języka i nadpisze wbudowane teksty. {} to miejsce na wartość, \n to nowa linia.
+@name = Polski
+
+# ---- górny pasek ----
+DSO-510 Link = DSO-510 Link
+searching for the scope… = szukam oscyloskopu…
+disconnected = rozłączono
+Port = Port
+Automatic (find DSO-510) = Automatycznie (znajdź DSO-510)
+Refresh list = Odśwież listę
+Disconnect = Rozłącz
+Screen = Ekran
+The 301-point trace the scope shows, ~50 frames/s = Przebieg 301 punktów, taki jak na ekranie oscyloskopu, ok. 50 klatek/s
+Full memory = Pełna pamięć
+All 30100 samples of every acquisition: zoom, pan, measurements at full resolution = Wszystkie 30 100 próbek z każdej akwizycji: powiększanie, przesuwanie, pomiary w pełnej rozdzielczości
+Needs firmware usb_link v3 (fw/build/APP_DSO-510.bin) = Wymaga firmware usb_link v3 (fw/build/APP_DSO-510.bin)
+Needs the v2 firmware (fw/build/APP_DSO-510.bin) = Wymaga firmware v2 (fw/build/APP_DSO-510.bin)
+{} captures/s = {} rekordów/s
+Save the whole deep capture (30100 samples) as CSV = Zapisz cały rekord pełnej pamięci (30 100 próbek) jako CSV
+Save the shown frame as CSV = Zapisz pokazaną klatkę jako CSV
+CSV = CSV
+📷 PNG = 📷 PNG
+Save the shown frame as an image = Zapisz pokazaną klatkę jako obraz
+PNG export is for the Screen view; use CSV for deep captures = PNG działa w widoku Ekran; rekordy pełnej pamięci zapisuj jako CSV
+💾 Save on scope = 💾 Zapisz w oscyloskopie
+Store a screenshot in the scope's gallery = Zapisz zrzut ekranu w galerii oscyloskopu
+AUTO = AUTO
+Single = Pojedynczy
+■ STOP = ■ STOP
+▶ RUN = ▶ START
+Language = Język
+
+# ---- historia ----
+● LIVE = ● NA ŻYWO
+oldest = najstarszy
+captures = rekordów
+frames = klatek
+Save session = Zapisz sesję
+All frames of the history (.dsos) = Wszystkie klatki z historii (.dsos)
+Clear = Wyczyść
+Open the captures folder (drop .dsos or scope .bin files on the window to open them) = Otwórz folder z zapisami (pliki .dsos lub .bin z oscyloskopu można upuścić na okno)
+HISTORY = HISTORIA
+LIVE = NA ŻYWO
+STOP = STOP
+RUN = PRACA
+
+# ---- komunikaty ----
+Connected: {} = Połączono: {}
+Disconnected: {} = Rozłączono: {}
+The scope must show the matching screen for this setting = Oscyloskop musi mieć otwarty właściwy ekran dla tego ustawienia
+Scope busy (AUTO running) - try again = Oscyloskop zajęty (trwa AUTO) - spróbuj ponownie
+Raw buffer received (30100 samples) = Odebrano surowy bufor (30 100 próbek)
+Screenshot saved on the scope (gallery) = Zrzut ekranu zapisany w oscyloskopie (galeria)
+Saved {} = Zapisano {}
+PNG failed: {} = Błąd zapisu PNG: {}
+CSV failed: {} = Błąd zapisu CSV: {}
+Save failed: {} = Błąd zapisu: {}
+Loaded session with {} frames - browse it with the history bar = Wczytano sesję: {} klatek - przeglądaj ją paskiem historii
+Session file is empty = Plik sesji jest pusty
+Opened {} (settings are not stored in this file: shown as 1 V / 1 ms) = Otwarto {} (plik nie zawiera nastaw: pokazano jako 1 V / 1 ms)
+{}: not a session or 301-byte trace file = {}: to nie jest plik sesji ani 301-bajtowy plik przebiegu
+Firmware v1: live view and front-panel keys only. Flash fw/build/APP_DSO-510.bin for full remote control. = Firmware v1: tylko podgląd i przyciski panelu. Wgraj fw/build/APP_DSO-510.bin, aby mieć pełne sterowanie.
+Full memory needs firmware usb_link v3: flash fw/build/APP_DSO-510.bin. = Pełna pamięć wymaga firmware usb_link v3: wgraj fw/build/APP_DSO-510.bin.
+waiting for data… = czekam na dane…
+{} texts translated = przetłumaczono {} tekstów
+
+# ---- pomiary ----
+Measurements = Pomiary
+from {} samples in the visible window = z {} próbek widocznego fragmentu
+from the whole record = z całego rekordu
+Freq = Częst.
+Period = Okres
+Duty = Wypełn.
+Rise = Narast.
+Fall = Opad.
+Ampl = Ampl.
+Counter = Licznik
+⚠ signal clipped - increase V/div = ⚠ sygnał obcięty - zwiększ V/dz
+
+# ---- pełna pamięć ----
+Waiting for the first capture… (the scope screen must be open; roll mode ≥ 50 ms/div has no memory record) = Czekam na pierwszy rekord… (musi być otwarty ekran oscyloskopu; w trybie roll ≥ 50 ms/dz nie ma rekordu w pamięci)
+Not streaming. = Strumień wyłączony.
+Record = Rekord
+{} samples, {} = {} próbek, {}
+Sample rate = Próbkowanie
+ (4× interleaved) =  (4× przeplot)
+Resolution = Rozdzielczość
+{} / sample = {} / próbkę
+vs. screen = względem ekranu
+{}× longer, {} samples/pixel = {}× dłuższy, {} próbek/piksel
+Pre-trigger = Przed wyzwoleniem
+Captured = Odebrano
+Fit all = Cały rekord
+whole record (double-click the plot) = cały rekord (albo dwuklik na wykresie)
+Screen window = Okno ekranu
+the part the scope shows = fragment widoczny na ekranie oscyloskopu
+CSV (all) = CSV (całość)
+CSV (visible) = CSV (widoczne)
+Raw .bin = Surowe .bin
+Wheel: zoom · drag: pan · drag the strip on top: move · double-click: fit. The blue band is the scope's screen. Acquisition pauses while a record is sent (about 5 captures/s). = Kółko: powiększenie · przeciąganie: przesuwanie · pasek u góry: szybkie przejście · dwuklik: cały rekord. Niebieski pas to ekran oscyloskopu. Akwizycja czeka na wysłanie rekordu (ok. 5 rekordów/s).
+incomplete transfers: {} = niepełne transfery: {}
+Waiting for a deep-memory capture…\n(scope screen, time base 50 ns … 20 ms/div) = Czekam na rekord pełnej pamięci…\n(ekran oscyloskopu, podstawa czasu 50 ns … 20 ms/dz)
+record = rekord
+{} samples · {}/s · {} per sample · window {} ({}×) = {} próbek · {}/s · {} na próbkę · okno {} ({}×)
+t {}   cursor {}   sample #{}: {} = t {}   kursor {}   próbka #{}: {}
+
+# ---- pion / poziom / wyzwalanie ----
+Vertical = Pion
+V/div = V/dz
+Coupling = Sprzężenie
+DC = DC
+AC = AC
+Probe = Sonda
+offset (px) = przesunięcie (px)
+Horizontal = Poziom
+Time/div = Czas/dz
+position = pozycja
+Position applies immediately while stopped in roll mode, otherwise on the next capture. = Pozycja działa od razu po zatrzymaniu w trybie roll, w pozostałych przy następnej akwizycji.
+Trigger = Wyzwalanie
+↑ Rising = ↑ Narastające
+↓ Falling = ↓ Opadające
+level  {} = poziom  {}
+Tip: drag the orange ▶ marker on the screen. = Wskazówka: przeciągnij pomarańczowy znacznik ▶ na ekranie. Żółty znacznik 1 po lewej to przesunięcie, pomarańczowy u góry to pozycja.
+Normal = Normalny
+Auto = Auto
+
+# ---- kursory / wyświetlanie ----
+Cursors = Kursory
+Time = Czas
+Voltage = Napięcie
+Drag the dashed lines on the screen. = Przeciągaj przerywane linie na ekranie.
+Display = Wyświetlanie
+persistence (frames) = poświata (klatki)
+
+# ---- generator ----
+Signal generator = Generator sygnału
+Waveform = Kształt
+Frequency = Częstotliwość
+duty % = wypełnienie %
+amplitude V = amplituda V
+Output ON = Wyjście WŁ.
+Output OFF = Wyjście WYŁ.
+Switch the scope to the generator screen first = Najpierw przełącz oscyloskop na ekran generatora
+Show generator screen = Pokaż ekran generatora
+Above 1 kHz the scope limits the generator while the oscilloscope screen is open. = Gdy otwarty jest ekran oscyloskopu, urządzenie ogranicza generator do 1 kHz.
+Sine = Sinus
+Square = Prostokąt
+Sawtooth = Piła
+Half-wave = Półfala
+Full-wave = Pełna fala
+Step = Schodki
+Reverse step = Schodki odwrócone
+Exponential rise = Narastanie wykładnicze
+Exponential decay = Zanik wykładniczy
+Multi-audio = Multi-audio
+Sinc pulse = Impuls sinc
+Lorentz = Lorentz
+
+# ---- urządzenie ----
+Instrument = Urządzenie
+Screen: {} = Ekran: {}
+Scope = Oscyloskop
+Generator = Generator
+Settings = Ustawienia
+Menu = Menu
+key beep = dźwięk klawiszy
+backlight % = podświetlenie %
+Auto power-off = Auto-wyłączanie
+Off = Wył.
+15 min = 15 min
+30 min = 30 min
+1 h = 1 h
+On-screen measurements = Pomiary na ekranie urządzenia
+all = wszystkie
+none = żadne
+Arrow keys adjust: {} = Strzałki regulują: {}
+next = następne
+V/div + time = V/dz + czas
+Offset + position = przesunięcie + pozycja
+Trigger + position = wyzwalanie + pozycja
+Gallery: {} screenshots = Galeria: {} zrzutów
+Settings are stored by the scope when it is switched off. = Ustawienia oscyloskop zapisuje sam przy wyłączaniu.
+Main menu = Menu główne
+Oscilloscope = Oscyloskop
+Sub-screen 5 = Podekran 5
+Screenshot viewer = Przeglądarka zrzutów
+USB Sharing = Udostępnianie USB
+Oscilloscope menu = Menu oscyloskopu
+Saving / gallery = Zapis / galeria
+Unknown = Nieznany
+
+# ---- panel i zaawansowane ----
+Front panel & advanced = Panel przycisków i zaawansowane
+Read raw buffer = Odczytaj surowy bufor
+All 30100 ADC samples (stop the scope first) = Wszystkie 30 100 próbek ADC (najpierw zatrzymaj oscyloskop)
+Save .bin = Zapisz .bin
+INFO = INFO
+DIAG = DIAG
+GET = GET
+Run/Stop = Start/Stop
+button 1: Run/Stop, generator output, delete = przycisk 1: start/stop, wyjście generatora, usuwanie
+button 2: up / + = przycisk 2: w górę / +
+button 3: down / - = przycisk 3: w dół / -
+Adjust = Regulacja
+button 4: what the arrows adjust / level up = przycisk 4: co regulują strzałki / poziom wyżej
+button 5: AUTO = przycisk 5: AUTO
+▶ Next = ▶ Dalej
+button 6: next / right = przycisk 6: dalej / w prawo
+OK = OK
+button 7: OK / enter = przycisk 7: OK / zatwierdź
+◀ Prev = ◀ Wstecz
+button 8: previous / left = przycisk 8: wstecz / w lewo
+Save shot = Zapisz zrzut
+button 1 long: save screenshot on the scope = przycisk 1 długo: zapis zrzutu w oscyloskopie
+button 4 long: side menu = przycisk 4 długo: menu boczne
+Auto B = Auto B
+button 5 long = przycisk 5 długo
+Home = Start
+button 7 long: main menu = przycisk 7 długo: menu główne
+Translations = Tłumaczenia
+Export template for a new language = Eksportuj szablon nowego języka
+Open translations folder = Otwórz folder tłumaczeń
+Edit the file and choose the language again to reload it. = Edytuj plik i wybierz język ponownie, aby go wczytać.
+
+# ---- pomiary dodatkowe, statystyki ----
+Overshoot = Przerzut
+Preshoot = Podbicie
++Width = Szer. +
+-Width = Szer. -
+Edges = Zbocza
+Statistics = Statystyki
+Reset = Zeruj
+{} acquisitions (reset when time/div or V/div change) = {} akwizycji (zerowane przy zmianie czasu/dz lub V/dz)
+Value = Wielkość
+mean = średnia
+
+# ---- widmo (FFT) ----
+Spectrum (FFT) = Widmo (FFT)
+Show = Pokaż
+log frequency = logarytmiczna częstotliwość
+whole range = cały zakres
+dB range = zakres dB
+Full memory gives a fine spectrum (up to 30100 samples); the screen trace only 301 points. = Pełna pamięć daje dokładne widmo (do 30 100 próbek), ślad z ekranu tylko 301 punktów.
+Fundamental = Podstawowa
+Level = Poziom
+Noise floor = Poziom szumu
+Wheel: zoom · drag: pan · double-click: whole range. In Full memory the spectrum follows the visible window. = Kółko: powiększenie · przeciąganie: przesuwanie · dwuklik: cały zakres. W pełnej pamięci widmo liczy się z widocznego fragmentu.
+No spectrum yet = Brak widma
+samples = próbek
+Rectangular = Prostokątne
+Hann = Hann
+Blackman-Harris = Blackman-Harris
+Flat top = Flat top
+
+# ---- podpowiedzi [?] ----
+Appearance of the trace. Persistence leaves faded older frames behind the current one, which shows jitter and noise. = Wygląd przebiegu. Poświata zostawia za bieżącą klatką przygaszone starsze klatki, dzięki czemu widać drgania (jitter) i szum.
+Number of previous frames drawn faded behind the current one (0 means off). Good for spotting jitter, noise and rare glitches. = Liczba poprzednich klatek rysowanych przygaszonym kolorem za bieżącą (0 = wyłączone). Pomaga wychwycić drgania, szum i rzadkie zakłócenia.
+Automatic measurements of the shown trace: levels, frequency, duty cycle and edge times. They are computed in this program; in Full memory from the visible window. = Automatyczne pomiary pokazanego przebiegu: poziomy, częstotliwość, wypełnienie i czasy zboczy. Liczy je ten program; w pełnej pamięci z widocznego fragmentu.
+Running min / mean / max of each measurement over consecutive acquisitions, to judge stability and jitter. They reset when time/div or V/div change. = Bieżące min / średnia / max każdego pomiaru z kolejnych akwizycji, do oceny stabilności i drgań. Zerują się przy zmianie czasu/dz lub V/dz.
+Every acquisition with all 30100 samples instead of the 301 points of the screen: about 100x finer detail, zoom, precise measurements and a fine spectrum. = Każda akwizycja ze wszystkimi 30 100 próbek zamiast 301 punktów z ekranu: ok. 100× więcej szczegółów, powiększanie, dokładne pomiary i dokładne widmo.
+Number of samples of this acquisition and the time they cover. = Liczba próbek tej akwizycji i czas, który obejmują.
+How often the converter samples. Up to 50 MS/s at the fastest time bases; slower time bases sample less often. = Jak często przetwornik próbkuje. Do 50 MS/s przy najszybszych podstawach czasu; wolniejsze podstawy próbkują rzadziej.
+Time between two neighbouring samples. = Czas między dwiema sąsiednimi próbkami.
+How much longer the record is than the part shown on the scope's own screen, and how many samples one screen pixel covers. = O ile rekord jest dłuższy od fragmentu widocznego na ekranie oscyloskopu i ile próbek przypada na jeden piksel ekranu.
+Time recorded before the trigger point: you can look back at what led to the event. = Czas zarejestrowany przed punktem wyzwolenia: można zobaczyć, co do zdarzenia doprowadziło.
+Time of reception (UTC) and the acquisition number. = Czas odbioru (UTC) i numer akwizycji.
+Input settings: sensitivity (volts per division), AC/DC coupling, probe ×1/×10 and vertical offset. = Ustawienia wejścia: czułość (volty na działkę), sprzężenie AC/DC, sonda ×1/×10 i przesunięcie w pionie.
+Volts per vertical division. Choose the lowest value at which the signal still fits on the screen: that gives the best resolution. = Volty na działkę w pionie. Wybierz najmniejszą wartość, przy której sygnał mieści się jeszcze na ekranie: daje to najlepszą rozdzielczość.
+DC shows the whole signal; AC blocks the DC component and shows only the changes. Probe ×10 is for a probe set to 10:1: it multiplies the scale by 10. = DC pokazuje cały sygnał; AC odcina składową stałą i pokazuje tylko zmiany. Sonda ×10 jest dla sondy ustawionej na 10:1: mnoży skalę przez 10.
+Moves the trace up or down (in screen pixels, 25 per division). The trigger level moves with it. You can also drag the yellow marker on the left of the screen. = Przesuwa przebieg w górę lub w dół (w pikselach ekranu, 25 na działkę). Poziom wyzwalania przesuwa się razem z nim. Można też przeciągnąć żółty znacznik po lewej stronie ekranu.
+Time base (time per division) and horizontal position of the trigger point. = Podstawa czasu (czas na działkę) i pozioma pozycja punktu wyzwolenia.
+Time per horizontal division. Fast settings (up to 20 µs/div) are sampled at 25-50 MS/s; from 50 ms/div the scope scrolls the trace (roll mode). = Czas na działkę w poziomie. Szybkie ustawienia (do 20 µs/dz) są próbkowane z 25–50 MS/s; od 50 ms/dz oscyloskop przewija przebieg (tryb roll).
+Moves the trigger point left or right to see more of what happened before or after the event. You can also drag the orange marker at the top of the screen. = Przesuwa punkt wyzwolenia w lewo lub w prawo, żeby zobaczyć więcej z tego, co działo się przed zdarzeniem lub po nim. Można też przeciągnąć pomarańczowy znacznik u góry ekranu.
+When the scope starts drawing: the trigger fires when the signal crosses the level in the chosen direction. Normal waits for it, Auto draws without it after a while, Single catches one event. = Kiedy oscyloskop zaczyna rysować: wyzwolenie następuje, gdy sygnał przekracza poziom w wybranym kierunku. Normalny czeka na nie, Auto po pewnym czasie rysuje bez niego, Pojedynczy łapie jedno zdarzenie.
+Normal: draws only after a trigger. Auto: draws even without one. Single: waits for one trigger, then stops. = Normalny: rysuje tylko po wyzwoleniu. Auto: rysuje także bez wyzwolenia. Pojedynczy: czeka na jedno wyzwolenie i zatrzymuje się.
+Trigger on a rising or on a falling edge of the signal. = Wyzwalanie na narastającym lub opadającym zboczu sygnału.
+Voltage at which the trigger fires. Set it inside the signal's swing; you can drag the orange ▶ marker on the right of the screen. = Napięcie, przy którym następuje wyzwolenie. Ustaw je w zakresie wahań sygnału; możesz też przeciągnąć pomarańczowy znacznik ▶ po prawej stronie ekranu.
+Shows which frequencies the signal consists of. A pure sine is a single peak; distortion adds harmonics and interference shows up as extra spikes. = Pokazuje, z jakich częstotliwości składa się sygnał. Czysty sinus to jedna szpilka; zniekształcenia dodają harmoniczne, a zakłócenia widać jako dodatkowe szpilki.
+Window: reduces leakage between frequencies. Hann is a good default, Blackman-Harris has the lowest side lobes, Flat top measures amplitude most exactly, Rectangular has the sharpest frequency resolution. = Okno: zmniejsza przeciekanie między częstotliwościami. Hann to dobry wybór domyślny, Blackman-Harris ma najniższe listki boczne, Flat top najdokładniej mierzy amplitudę, a prostokątne ma najostrzejszą rozdzielczość częstotliwości.
+Logarithmic frequency axis is better for wide ranges; 'whole range' undoes zoom and pan. = Logarytmiczna oś częstotliwości jest lepsza dla szerokich zakresów; „cały zakres” cofa powiększenie i przesunięcie.
+How many dB below the highest peak are shown. 80 dB is enough for most signals; the 8-bit converter of the scope is good for about 45 dB. = Ile dB poniżej najwyższej szpilki jest pokazane. 80 dB wystarcza dla większości sygnałów; 8-bitowy przetwornik oscyloskopu daje ok. 45 dB.
+Frequency of the strongest peak, interpolated between the FFT bins, so it is more exact than the bin spacing. = Częstotliwość najsilniejszej szpilki, interpolowana między punktami FFT, więc dokładniejsza niż rozstaw punktów.
+Amplitude of the fundamental as RMS volts and in dBV (decibels relative to 1 V RMS). = Amplituda składowej podstawowej jako wartość skuteczna (RMS) i w dBV (decybele względem 1 V RMS).
+Total harmonic distortion: RMS of the harmonics H2-H10 relative to the fundamental. 0 % is a perfect sine; a square wave has tens of percent. = Zniekształcenia harmoniczne (THD): wartość skuteczna harmonicznych H2–H10 względem składowej podstawowej. 0 % to idealny sinus; prostokąt ma dziesiątki procent.
+Spurious-free dynamic range: by how many dB the strongest unwanted spike is below the fundamental. Larger means cleaner. = SFDR: o ile dB najsilniejsze niepożądane zakłócenie jest słabsze od składowej podstawowej. Im więcej, tym czyściej.
+Typical (median) level of the bins: the noise of the signal and of the scope's 8-bit converter. = Typowy (mediana) poziom punktów widma: szum sygnału i 8-bitowego przetwornika oscyloskopu.
+Distance between two FFT bins. A longer record (Full memory) gives a finer resolution. = Odległość między dwoma punktami FFT. Dłuższy rekord (pełna pamięć) daje dokładniejszą rozdzielczość.
+Two draggable lines for measuring time differences (ΔT, 1/ΔT) and voltage differences (ΔV) on the screen. = Dwie przeciągane linie do pomiaru różnic czasu (ΔT, 1/ΔT) i napięcia (ΔV) na ekranie.
+Tick Time and/or Voltage, then drag the dashed lines on the screen. The differences are shown below. = Zaznacz Czas i/lub Napięcie, potem przeciągaj przerywane linie na ekranie. Różnice pokazują się poniżej.
+Controls the generator output of the scope: waveform, frequency, duty cycle, amplitude and output on/off. = Steruje wyjściem generatora oscyloskopu: kształt, częstotliwość, wypełnienie, amplituda i włączenie wyjścia.
+Switch the scope's screens and set device options: key beep, backlight, auto power-off and the measurements shown on the device. = Przełączanie ekranów oscyloskopu i opcje urządzenia: dźwięk klawiszy, podświetlenie, auto-wyłączanie i pomiary pokazywane na urządzeniu.
+Virtual buttons of the scope, download of the raw sample buffer and diagnostic commands. = Wirtualne przyciski oscyloskopu, pobieranie surowego bufora próbek i polecenia diagnostyczne.
+
+# ---- awaria ----
+The previous session ended abnormally. Details are in crash.log. = Poprzednia sesja zakończyła się awarią. Szczegóły są w pliku crash.log.
+Open log folder = Otwórz folder z logiem
+Dismiss = Zamknij
+
+# ---- strumień w trybie roll (od 50 ms/dz) ----
+Waiting for a deep-memory capture…\n(scope screen; 50 ns … 20 ms/div as a record, 50 ms/div and slower as a stream) = Czekam na rekord pełnej pamięci…\n(ekran oscyloskopu; 50 ns … 20 ms/dz jako rekord, 50 ms/dz i wolniej jako strumień)
+Waiting for the first samples… (50 ms/div and slower: the scope streams one point per pixel step, at 20 s/div one every 0.8 s) = Czekam na pierwsze próbki… (od 50 ms/dz oscyloskop wysyła strumień: jeden punkt na krok piksela, przy 20 s/dz jeden co 0,8 s)
+Waiting for the first capture… (the scope screen must be open) = Czekam na pierwszy rekord… (musi być otwarty ekran oscyloskopu)
+Mode = Tryb
+stream (roll mode) = strumień (tryb roll)
+From 50 ms/div the scope has no sample record: it adds one point per pixel step to the screen. Here they are collected into one long history; time 0 is the start of the record. = Od 50 ms/dz oscyloskop nie ma rekordu próbek: dopisuje jeden punkt na krok piksela do ekranu. Tu są zbierane w jedną długą historię; czas 0 to początek zapisu.
+Follow live = Śledź na żywo
+Keep the newest samples at the right edge. While following, the wheel zooms around the newest sample; drag the view into the past to stop following and zoom there. = Trzyma najnowsze próbki przy prawej krawędzi. Podczas śledzenia kółko powiększa wokół najnowszej próbki; przeciągnij widok w przeszłość, żeby przestać śledzić i powiększać tam.
+The roll-mode stream needs firmware usb_link v4: flash fw/build/APP_DSO-510.bin. = Strumień w trybie roll wymaga firmware usb_link v4: wgraj fw/build/APP_DSO-510.bin.
+
+# ---- bateria ----
+Battery: {} % · {} V = Bateria: {} % · {} V
+charger connected = ładowarka podłączona
+The scope reports the level in steps ({} %). = Oscyloskop podaje poziom skokowo ({} %).
+Charger or USB power connected: while charging the measured voltage is raised, so the level is overestimated. = Podłączone ładowanie lub zasilanie z USB: podczas ładowania zmierzone napięcie jest wyższe, więc poziom jest zawyżony.
+Running on the battery. = Praca na baterii.
+Battery level and voltage measured by the scope once per second. On USB power the scope charges and the voltage is raised, so the level shown is overestimated; it is accurate on battery power. = Poziom i napięcie baterii mierzone przez oscyloskop raz na sekundę. Przy zasilaniu z USB oscyloskop się ładuje, a napięcie jest podwyższone, więc pokazany poziom jest zawyżony; na zasilaniu z baterii jest dokładny.
+
+# ---- charakterystyka częstotliwościowa (wykres Bodego) ----
+Frequency response = Charakterystyka
+Bode plot: the generator sweeps a sine, the scope measures the amplitude at the output of your circuit (filter, amplifier...) = Wykres Bodego: generator przemiata sinus, oscyloskop mierzy amplitudę na wyjściu Twojego układu (filtr, wzmacniacz...)
+Measures how much your circuit passes at each frequency (gain in dB), using the scope's own generator. = Mierzy, ile Twój układ przepuszcza przy każdej częstotliwości (wzmocnienie w dB), z użyciem generatora oscyloskopu.
+from = od
+to = do
+points = punktów
+generator V = generator V
+Frequencies per sweep, spaced logarithmically. Each point takes about 1.5-2 s. = Liczba częstotliwości w przemiataniu, rozłożonych logarytmicznie. Każdy punkt trwa ok. 1,5-2 s.
+Generator amplitude. Lower it if your circuit distorts or clips (amplifiers); the reference must be measured with the same setting. = Amplituda generatora. Zmniejsz ją, jeśli układ zniekształca lub obcina sygnał (wzmacniacze); wzorzec musi być zmierzony przy tym samym ustawieniu.
+reference = wzorzec
+measurement = pomiar
+Stop = Stop
+1. Reference = 1. Wzorzec
+2. Measure = 2. Pomiar
+Probe on the generator output (or on the circuit input): measures what goes into the circuit = Sonda na wyjściu generatora (lub na wejściu układu): mierzy, co wchodzi do układu
+Probe on the circuit output: the gain is this divided by the reference = Sonda na wyjściu układu: wzmocnienie to ten pomiar podzielony przez wzorzec
+reference: {} points = wzorzec: {} punktów
+How to use = Jak korzystać
+No frequency response yet: see "How to use" in the panel on the right = Brak charakterystyki: zobacz „Jak korzystać” w panelu po prawej
+max at = maksimum przy
+no reference: gain against the generator setting (approximate) = brak wzorca: wzmocnienie względem ustawienia generatora (przybliżone)
+What it shows: how much of a sine your circuit lets through at each frequency (gain in dB: 0 dB unchanged, -3 dB the cutoff, -6 dB half the amplitude, +6 dB twice). Only one channel, so no phase.\n\nConnections:\n1. Generator output of the scope -> input of your circuit.\n2. Ground of the probe and of the generator -> ground of the circuit.\n3. Probe x1 (set the probe switch and the scope to X1).\n\nSteps:\n1. Probe on the circuit INPUT (or directly on the generator output) and press "1. Reference". It measures what the generator really delivers at every frequency, which also cancels the generator's and the scope's own response.\n2. Move the probe to the circuit OUTPUT and press "2. Measure". The plot shows the gain, output divided by reference.\n3. Repeat 2 as often as you like (e.g. after changing a part); the reference stays valid while the range, points and generator voltage are unchanged.\n\nThe app sets the generator (sine), the time base and the V/div by itself for every point; the scope screen changes during the sweep, that is normal. A point takes about 1.5-2 s.\n\nTips: range 10 Hz - 50 kHz (generator limit). For a high-pass or an AC-coupled circuit use DC coupling on the scope. If the output is very small (deep stopband) the readings below about -40 dB are noise. Dashed orange lines: maximum - 3 dB and the -3 dB frequencies. CSV saves all points. = Co pokazuje: jaka część sinusa przechodzi przez Twój układ przy każdej częstotliwości (wzmocnienie w dB: 0 dB bez zmian, -3 dB częstotliwość graniczna, -6 dB połowa amplitudy, +6 dB dwa razy więcej). Jeden kanał, więc bez fazy.\n\nPołączenia:\n1. Wyjście generatora oscyloskopu -> wejście Twojego układu.\n2. Masa sondy i masa generatora -> masa układu.\n3. Sonda x1 (przełącznik na sondzie i ustawienie w oscyloskopie na X1).\n\nKroki:\n1. Sonda na WEJŚCIU układu (albo wprost na wyjściu generatora), naciśnij "1. Wzorzec". Mierzy, co generator naprawdę podaje przy każdej częstotliwości; to usuwa też wpływ samego generatora i oscyloskopu.\n2. Przełóż sondę na WYJŚCIE układu i naciśnij "2. Pomiar". Wykres pokazuje wzmocnienie: wyjście podzielone przez wzorzec.\n3. Krok 2 możesz powtarzać dowolnie (np. po wymianie elementu); wzorzec jest ważny, dopóki nie zmienisz zakresu, liczby punktów ani napięcia generatora.\n\nAplikacja sama ustawia generator (sinus), podstawę czasu i V/dz dla każdego punktu; ekran oscyloskopu zmienia się w trakcie, to normalne. Jeden punkt trwa ok. 1,5-2 s.\n\nWskazówki: zakres 10 Hz - 50 kHz (granica generatora). Dla filtra górnoprzepustowego lub układu ze sprzężeniem AC ustaw w oscyloskopie sprzężenie DC. Gdy sygnał na wyjściu jest bardzo mały (głęboko w paśmie zaporowym), odczyty poniżej ok. -40 dB to szum. Pomarańczowe linie przerywane: maksimum - 3 dB i częstotliwości -3 dB. CSV zapisuje wszystkie punkty.
+generator out = wyjście generatora
+probe input = wejście sondy
+ground = masa
+your circuit (e.g. RC low-pass) = Twój układ (np. filtr RC dolnoprzepustowy)
+IN = WE
+OUT = WY
+signal = sygnał
+ground (probe clip) = masa (krokodylek sondy)
+probe here (step 1: reference) = sonda tutaj (krok 1: wzorzec)
+probe here (step 2: measurement) = sonda tutaj (krok 2: pomiar)
+Step 1: reference = Krok 1: wzorzec
+Step 2: measurement = Krok 2: pomiar

@@ -1,0 +1,12 @@
+[package]
+name = "dso510-link"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = "0.37.0"
+nusb = "0.2.9"
+png = "0.18.1"
+rustfft = "6.4.1"
+serialport = "4.10.1"
+windows-sys = { version = "0.61.2", features = ["Win32_Devices_DeviceAndDriverInstallation", "Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
