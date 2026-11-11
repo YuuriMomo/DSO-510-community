@@ -467,7 +467,8 @@ pub fn connection_diagram(ui: &mut egui::Ui, step: u8) {
     p.line_segment([gen_out, cin], stroke(WIRE));
     p.line_segment([gnd_s, cgnd], stroke(GND));
     text(at(131.0, 40.0), tr("signal"), WIRE, Align2::CENTER_BOTTOM);
-    text(at(131.0, 104.0), tr("ground (probe clip)"), GND, Align2::CENTER_BOTTOM);
+    text(at(124.0, 92.0), tr("ground"), GND, Align2::CENTER_BOTTOM);
+    text(at(124.0, 104.0), tr("(probe clip)"), GND, Align2::CENTER_BOTTOM);
 
     // the probe: from the probe input to IN (step 1) or OUT (step 2)
     let target = if step == 1 { cin + egui::vec2(10.0 * s, 0.0) } else { cout };
@@ -475,11 +476,11 @@ pub fn connection_diagram(ui: &mut egui::Ui, step: u8) {
     let path = if step == 1 {
         vec![ch, bend, Pos2::new(target.x, bend.y), target + egui::vec2(0.0, 6.0)]
     } else {
-        vec![ch, at(130.0, 76.0), at(130.0, 136.0), at(310.0, 136.0), Pos2::new(at(310.0, 0.0).x, cout.y), cout + egui::vec2(6.0, 0.0)]
+        vec![ch, at(158.0, 76.0), at(158.0, 136.0), at(310.0, 136.0), Pos2::new(at(310.0, 0.0).x, cout.y), cout + egui::vec2(6.0, 0.0)]
     };
     p.add(Shape::line(path, Stroke::new(2.0, PROBE)));
     p.circle_filled(target, 4.0, PROBE);
     let label = if step == 1 { tr("probe here (step 1: reference)") } else { tr("probe here (step 2: measurement)") };
-    let lp = if step == 1 { at(196.0, 92.0) } else { at(220.0, 132.0) };
+    let lp = if step == 1 { at(235.0, 140.0) } else { at(235.0, 150.0) };
     text(lp, label, PROBE, Align2::CENTER_BOTTOM);
 }

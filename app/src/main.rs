@@ -88,6 +88,14 @@ enum ViewMode {
     Bode,
 }
 
+struct ShotTour {
+    dir: std::path::PathBuf,
+    step: usize,
+    since: Instant,
+    waiting_shot: Option<String>,
+    shot_done: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
 const BODE_HELP: &str = "What it shows: how much of a sine your circuit lets through at each frequency (gain in dB: 0 dB unchanged, -3 dB the cutoff, -6 dB half the amplitude, +6 dB twice). Only one channel, so no phase.\n\nConnections:\n1. Generator output of the scope -> input of your circuit.\n2. Ground of the probe and of the generator -> ground of the circuit.\n3. Probe x1 (set the probe switch and the scope to X1).\n\nSteps:\n1. Probe on the circuit INPUT (or directly on the generator output) and press \"1. Reference\". It measures what the generator really delivers at every frequency, which also cancels the generator's and the scope's own response.\n2. Move the probe to the circuit OUTPUT and press \"2. Measure\". The plot shows the gain, output divided by reference.\n3. Repeat 2 as often as you like (e.g. after changing a part); the reference stays valid while the range, points and generator voltage are unchanged.\n\nThe app sets the generator (sine), the time base and the V/div by itself for every point; the scope screen changes during the sweep, that is normal. A point takes about 1.5-2 s.\n\nTips: range 10 Hz - 50 kHz (generator limit). For a high-pass or an AC-coupled circuit use DC coupling on the scope. If the output is very small (deep stopband) the readings below about -40 dB are noise. Dashed orange lines: maximum - 3 dB and the -3 dB frequencies. CSV saves all points.";
 
 #[derive(Clone, Copy, PartialEq)]
@@ -168,6 +176,8 @@ struct App {
     spec_key: Option<(u8, u64, usize, usize, u8)>,
     spec_view: spectrum_view::SpectrumView,
     bode: bode::Bode,
+    /// DSO510_SHOTS=<dir>: screenshot tour for the documentation (English UI)
+    tour: Option<ShotTour>,
     show_stats: bool,
     stats: [Stat; 10],
     stats_id: Option<u64>,
@@ -238,6 +248,7 @@ impl App {
             spec_key: None,
             spec_view: spectrum_view::SpectrumView::default(),
             bode: bode::Bode::default(),
+            tour: std::env::var_os("DSO510_SHOTS").map(|d| ShotTour { dir: d.into(), step: 0, since: Instant::now(), waiting_shot: None, shot_done: Default::default() }),
             show_stats: false,
             stats: [Stat::default(); 10],
             stats_id: None,
@@ -664,7 +675,7 @@ fn battery_ui(ui: &mut egui::Ui, s: &Status) {
     if s.charging() {
         p.text(body.center(), egui::Align2::CENTER_CENTER, "⚡", egui::FontId::proportional(12.0), Color32::BLACK);
     }
-    resp.on_hover_ui(|ui| {
+    let tip = |ui: &mut egui::Ui| {
         ui.set_max_width(320.0);
         ui.label(RichText::new(battery_text(s)).strong());
         ui.label(trf("The scope reports the level in steps ({} %).", &[&s.battery_pct]));
@@ -673,16 +684,33 @@ fn battery_ui(ui: &mut egui::Ui, s: &Status) {
         } else {
             tr("Running on the battery.")
         });
-    });
+    };
+    if tour_tip(ui, "battery") { resp.show_tooltip_ui(tip) } else { resp.on_hover_ui(tip); }
+}
+
+/// screenshot tour: the tooltips it shows without the mouse
+const TOUR_TIP: &str = "tour_tip";
+fn tour_tip(ui: &egui::Ui, key: &str) -> bool {
+    ui.data(|d| d.get_temp::<Vec<String>>(egui::Id::unique(TOUR_TIP))).is_some_and(|v| v.iter().any(|k| k == key))
 }
 
 /// Small [?] that explains a control when the mouse rests on it.
 fn help_tip(ui: &mut egui::Ui, text: &str) {
+    help_tip_as(ui, text, "");
+}
+
+/// `key`: the screenshot tour shows this tip when it names the key
+fn help_tip_as(ui: &mut egui::Ui, text: &str, key: &str) {
     let r = ui.add(egui::Label::new(RichText::new("[?]").small().monospace().weak()).sense(egui::Sense::hover()));
-    r.on_hover_cursor(egui::CursorIcon::Help).on_hover_ui(|ui| {
+    let tip = |ui: &mut egui::Ui| {
         ui.set_max_width(320.0);
         ui.label(text);
-    });
+    };
+    if !key.is_empty() && tour_tip(ui, key) {
+        r.show_tooltip_ui(tip);
+    } else {
+        r.on_hover_cursor(egui::CursorIcon::Help).on_hover_ui(tip);
+    }
 }
 
 /// Collapsible group with a [?] next to the title.
@@ -697,7 +725,7 @@ fn section(ui: &mut egui::Ui, title: &str, help: &str, open: bool, add: impl FnO
         if r.clicked() {
             is_open = !is_open;
         }
-        help_tip(ui, help);
+        help_tip_as(ui, help, title);
     });
     ui.data_mut(|d| d.insert_temp(id, is_open));
     if is_open {
@@ -721,6 +749,7 @@ impl App {
     fn draw(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
         self.poll();
+        self.tour_step(&ctx);
         if self.bode.running().is_some() {
             if self.conn != ConnState::Connected {
                 self.bode.stop(&mut |_| {});
@@ -1417,6 +1446,103 @@ impl App {
             }
             ui.small(tr("Drag the dashed lines on the screen."));
         });
+    }
+
+    /// Documentation screenshots (DSO510_SHOTS=<dir>): English UI, Screen, Full memory, FFT, Frequency
+    /// response with its help, then the frequency response after the user has measured it; then closes.
+    fn tour_step(&mut self, ctx: &egui::Context) {
+        if self.tour.is_none() {
+            return;
+        }
+        // read before the tour is borrowed
+        let connected = self.conn == ConnState::Connected;
+        let have_frame = self.frame.is_some();
+        let have_deep = self.shown_deep().is_some();
+        let bode_done = !self.bode.measured.is_empty() && self.bode.running().is_none();
+        let Some(t) = self.tour.as_mut() else { return };
+        ctx.request_repaint_after(Duration::from_millis(100));
+        // a requested screenshot is saved by its callback, which sets `done`
+        if t.waiting_shot.is_some() {
+            if t.shot_done.load(std::sync::atomic::Ordering::Acquire) {
+                let name = t.waiting_shot.take().unwrap();
+                t.step += 1;
+                t.since = Instant::now();
+                self.log(format!("screenshot {name}"));
+            }
+            return;
+        }
+        let waited = t.since.elapsed();
+        let shoot = |t: &mut ShotTour, name: &str| {
+            t.waiting_shot = Some(name.to_string());
+            t.shot_done.store(false, std::sync::atomic::Ordering::Release);
+            let path = t.dir.join(name);
+            let done = t.shot_done.clone();
+            let repaint = ctx.clone();
+            ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::ScreenshotCallback::new(move |img| {
+                let _ = std::fs::create_dir_all(path.parent().unwrap_or(std::path::Path::new(".")));
+                let [w, h] = img.size;
+                let rgba: Vec<u8> = img.pixels.iter().flat_map(|c| c.to_array()).collect();
+                if let Ok(f) = std::fs::File::create(&path) {
+                    let mut enc = png::Encoder::new(std::io::BufWriter::new(f), w as u32, h as u32);
+                    enc.set_color(png::ColorType::Rgba);
+                    enc.set_depth(png::BitDepth::Eight);
+                    if let Ok(mut wr) = enc.write_header() {
+                        let _ = wr.write_image_data(&rgba);
+                    }
+                }
+                done.store(true, std::sync::atomic::Ordering::Release);
+                repaint.request_repaint();
+            })));
+        };
+        match t.step {
+            0 => {
+                i18n::set_language("en");                // not saved: the user's setting stays
+                self.lang = "en".into();
+                self.mode = ViewMode::Screen;
+                self.show_fft = false;
+                self.crash_banner = false;
+                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(1600.0, 900.0)));
+                ctx.all_styles_mut(|s| s.interaction.tooltip_delay = 1.0e6); // no tooltip under a resting mouse
+                t.step = 1;
+                t.since = Instant::now();
+            }
+            1 if connected && have_frame && waited > Duration::from_secs(4) => shoot(t, "screen.png"),
+            // tooltips: the battery and the [?] of the measurements, shown without the mouse
+            2 => {
+                ctx.data_mut(|d| d.insert_temp(egui::Id::unique(TOUR_TIP), vec!["battery".to_string(), tr("Measurements").to_string()]));
+                t.step = 3;
+                t.since = Instant::now();
+            }
+            3 if waited > Duration::from_secs(1) => shoot(t, "tooltips.png"),
+            4 => {
+                ctx.data_mut(|d| d.remove::<Vec<String>>(egui::Id::unique(TOUR_TIP)));
+                self.mode = ViewMode::Deep;
+                t.step = 5;
+                t.since = Instant::now();
+            }
+            5 if have_deep && waited > Duration::from_secs(5) => shoot(t, "full_memory.png"),
+            6 => {
+                self.show_fft = true;
+                t.step = 7;
+                t.since = Instant::now();
+            }
+            7 if waited > Duration::from_secs(3) => shoot(t, "fft.png"),
+            8 => {
+                self.show_fft = false;
+                self.mode = ViewMode::Bode;
+                t.step = 9;
+                t.since = Instant::now();
+            }
+            9 if waited > Duration::from_secs(2) => shoot(t, "frequency_response_help.png"),
+            // DSO510_SHOTS_QUICK: no frequency response measurement, close now
+            10 if std::env::var_os("DSO510_SHOTS_QUICK").is_some() => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            // the user measures (reference, move the probe, measurement); then the result
+            10 if bode_done && waited > Duration::from_secs(2) => {
+                shoot(t, "frequency_response.png")
+            }
+            11 => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            _ => {}
+        }
     }
 
     fn bode_ui(&mut self, ui: &mut egui::Ui, en: bool) {

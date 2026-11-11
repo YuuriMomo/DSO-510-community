@@ -10,6 +10,32 @@ controls the scope over USB. See [CHANGELOG.md](CHANGELOG.md) for everything tha
 | `app/` | source code of the PC application (Rust) |
 | `SHA256SUMS` | checksums of both binaries |
 
+## Screenshots
+
+**Screen**: the live trace with measurements and all scope settings.
+
+![Screen view](docs/screenshots/screen.png)
+
+**Full memory**: every one of the 30100 samples of each acquisition, with zoom and pan; the strip on top shows
+the whole record and the blue band the part the scope shows.
+
+![Full memory view](docs/screenshots/full_memory.png)
+
+**FFT** of the full record, with the harmonics marked.
+
+![FFT](docs/screenshots/fft.png)
+
+**Frequency response**: a Bode magnitude plot made with the scope's own generator. Instructions and connection
+diagrams are in the panel.
+
+![Frequency response with instructions](docs/screenshots/frequency_response_help.png)
+
+![Frequency response result](docs/screenshots/frequency_response.png)
+
+**Help tips**: the battery icon and every `[?]` explain themselves when the mouse rests on them.
+
+![Tooltips](docs/screenshots/tooltips.png)
+
 ## Flashing the firmware
 1. Switch the scope off. Hold the update button while switching it on: the scope appears as the USB drive
    **"AT32 MSC IAP"** (the bootloader, not changed by this firmware).

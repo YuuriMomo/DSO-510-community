@@ -77,6 +77,7 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
 ### Other changes
 - Single mode at 50 ms/div and slower shows the captured record.
 - Battery shown in the top bar (level, voltage, charging).
+- Connection diagrams: labels no longer overlap the wires.
 
 ### Features
 - Live screen with persistence; trigger level, offset and position dragged with the mouse.
