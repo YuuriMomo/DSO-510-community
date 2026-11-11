@@ -186,6 +186,8 @@ struct App {
     languages: Vec<i18n::Language>,
     /// the previous session ended abnormally (see crash.log)
     crash_banner: bool,
+    /// last frame whose acquisition was triggered (firmware v4.18)
+    last_trig: Option<Instant>,
 }
 
 impl App {
@@ -256,6 +258,7 @@ impl App {
             lang,
             languages: i18n::available(),
             crash_banner: false,
+            last_trig: None,
         }
     }
 
@@ -433,6 +436,9 @@ impl App {
                             *i = i.saturating_sub(1);
                         }
                     }
+                    if f.triggered() == Some(true) {
+                        self.last_trig = Some(Instant::now());
+                    }
                     self.history.push_back(f.clone());
                     self.frame = Some(f);
                     if self.status.is_none() {
@@ -472,6 +478,9 @@ impl App {
                 }
                 Event::Message(Message::Raw { offset, data }) if self.deep_asm.in_progress() => {
                     if let Some(c) = self.deep_asm.chunk(offset, &data) {
+                        if c.untriggered_normal() {
+                            continue;                       // Normal: keep the last triggered record
+                        }
                         self.deep_n += 1;
                         if self.deep_history.len() >= DEEP_HISTORY_MAX {
                             self.deep_history.pop_front();
@@ -984,7 +993,7 @@ impl App {
                 } else if self.shown_deep().is_none() {
                     None
                 } else {
-                    Some(if running { (tr("LIVE"), GOOD) } else { (tr("STOP"), BAD) })
+                    Some(if running { self.trig_badge(tr("LIVE")) } else { (tr("STOP"), BAD) })
                 };
                 let roll_mode = self.roll_mode();
                 let c = pick_deep(roll_mode, &self.roll, &self.deep_history, self.deep_idx);
@@ -1019,7 +1028,7 @@ impl App {
             let badge = if self.view.is_some() {
                 Some((tr("HISTORY"), ACCENT))
             } else if shown.is_some() {
-                Some(if running { (tr("RUN"), GOOD) } else { (tr("STOP"), BAD) })
+                Some(if running { self.trig_badge(tr("RUN")) } else { (tr("STOP"), BAD) })
             } else {
                 None
             };
@@ -1239,7 +1248,7 @@ impl App {
                     self.save_deep_csv(true);
                 }
                 if ui.button(tr("Raw .bin")).clicked() {
-                    match export::save_raw(&c.codes) {
+                    match export::save_raw(c.adc.as_ref().unwrap_or(&c.codes)) {
                         Ok(p) => self.notify(trf("Saved {}", &[&p.display()])),
                         Err(e) => self.notify(trf("Save failed: {}", &[&e])),
                     }
@@ -1450,6 +1459,23 @@ impl App {
 
     /// Documentation screenshots (DSO510_SHOTS=<dir>): English UI, Screen, Full memory, FFT, Frequency
     /// response with its help, then the frequency response after the user has measured it; then closes.
+    /// Trigger status like a bench scope: Trig'd (triggered recently), WAIT (Normal / Single without a
+    /// trigger: the display keeps the last triggered waveform), AUTO (Auto without a trigger: free running).
+    /// `plain` is the label for firmware that does not report it.
+    fn trig_badge(&self, plain: &'static str) -> (&'static str, Color32) {
+        // roll time bases (50 ms/div and slower) scroll without a trigger, except Single
+        let Some(f) = self.frame.as_ref().filter(|f| f.triggered().is_some() && (f.timebase < 18 || f.trig_mode == 2)) else {
+            return (plain, GOOD);
+        };
+        if self.last_trig.is_some_and(|t| t.elapsed() < Duration::from_millis(300)) {
+            (tr("Trig'd"), GOOD)
+        } else if f.trig_mode == 1 {
+            (tr("AUTO"), ACCENT)
+        } else {
+            (tr("WAIT"), ACCENT)
+        }
+    }
+
     fn tour_step(&mut self, ctx: &egui::Context) {
         if self.tour.is_none() {
             return;

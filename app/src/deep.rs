@@ -14,8 +14,10 @@ use crate::protocol::{px_to_volts, DeepInfo, PX_PER_DIV, TIMEBASE_SECONDS, TIME_
 #[derive(Clone, Debug)]
 pub struct DeepCapture {
     pub info: DeepInfo,
-    /// ADC codes in time order
+    /// samples in time order as screen pixels (the ADC codes through the scope's vertical scale, like its trace)
     pub codes: Vec<u8>,
+    /// the ADC codes themselves when the vertical scale changed them (raw export)
+    pub adc: Option<Vec<u8>>,
     /// index of the trigger point in `codes` (time 0)
     pub trig: f64,
     /// seconds between samples
@@ -29,6 +31,22 @@ pub struct DeepCapture {
 const BLOCKS: usize = 4;
 /// samples per DMA block dropped at the start of a linear capture (stale ADC pipeline output)
 const STALE_SAMPLES: usize = 4;
+
+/// The scope's vertical scale (firmware osc_zoom_map, the same float operations): ADC code -> screen pixel.
+/// `zoom` is a calibration value kept in the settings; 0 and 255 mean none.
+pub fn zoom_map(zoom: u8, offset: i8) -> Option<[u8; 256]> {
+    if zoom == 0 || zoom == 255 {
+        return None;
+    }
+    let gain = (zoom as f32 - 28.0) / 150.0;
+    let off = offset as f32;
+    let mut m = [0u8; 256];
+    for (v, o) in m.iter_mut().enumerate() {
+        let y = ((v as f32 - 128.0) - off) / gain + 128.0 + off;
+        *o = if y.is_nan() || y > 255.0 { 255 } else if y < 0.0 { 0 } else { y as u8 };
+    }
+    Some(m)
+}
 
 impl DeepCapture {
     pub fn assemble(info: DeepInfo, raw: &[u8]) -> Self {
@@ -61,7 +79,16 @@ impl DeepCapture {
         };
         let spp = if info.spp_capture > 0.0 { info.spp_capture as f64 } else { 1.0 };
         let dt = TIMEBASE_SECONDS[(info.timebase_applied as usize).min(26)] / PX_PER_DIV / spp * TIME_SCALE;
-        DeepCapture { info, codes, trig, dt, when: crate::export::stamp(), stream: false }
+        let (codes, adc) = match zoom_map(info.zoom, info.offset) {
+            Some(map) => (codes.iter().map(|&v| map[v as usize]).collect(), Some(codes)),
+            None => (codes, None),
+        };
+        DeepCapture { info, codes, adc, trig, dt, when: crate::export::stamp(), stream: false }
+    }
+
+    /// Normal trigger mode and no edge found: the scope keeps its screen, the record is not shown
+    pub fn untriggered_normal(&self) -> bool {
+        self.info.has_flags && !self.info.triggered && self.info.trig_mode == 0
     }
 
     pub fn volts_per_div(&self) -> f64 {
@@ -173,6 +200,7 @@ impl RollStream {
             self.cap = Some(DeepCapture {
                 info,
                 codes: Vec::new(),
+                adc: None,
                 trig: 0.0,
                 dt: TIMEBASE_SECONDS[tb] / PX_PER_DIV * TIME_SCALE,
                 when: crate::export::stamp(),
@@ -299,6 +327,20 @@ mod tests {
         }
         let c = DeepCapture::assemble(info(true, 0, 100), &raw);
         assert!(c.codes.windows(2).all(|w| w[1] >= w[0]), "{:?}", &c.codes[..16]);
+    }
+
+    #[test]
+    fn vertical_scale_like_the_scope() {
+        assert!(zoom_map(0, 0).is_none() && zoom_map(255, 0).is_none());
+        let id = zoom_map(178, 0).unwrap();                // gain 1: unchanged
+        assert!((0..=255u8).all(|v| id[v as usize] == v));
+        let m = zoom_map(128, 0).unwrap();                 // gain 2/3: 1.5x around the centre
+        assert_eq!((m[128], m[132], m[184], m[100]), (128, 134, 212, 86));
+        let mut raw = vec![132u8; 400];
+        raw[0] = 128;
+        let c = DeepCapture::assemble(DeepInfo { zoom: 128, ..info(false, 100, 150) }, &raw);
+        assert_eq!(c.codes[0], 134);
+        assert_eq!(c.adc.as_ref().unwrap()[0], 132);
     }
 
     #[test]

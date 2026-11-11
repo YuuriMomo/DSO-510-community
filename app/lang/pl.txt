@@ -353,3 +353,5 @@ probe here (step 1: reference) = sonda tutaj (krok 1: wzorzec)
 probe here (step 2: measurement) = sonda tutaj (krok 2: pomiar)
 Step 1: reference = Krok 1: wzorzec
 Step 2: measurement = Krok 2: pomiar
+Trig'd = WYZW.
+WAIT = CZEKA

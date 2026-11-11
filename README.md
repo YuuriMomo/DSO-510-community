@@ -5,7 +5,7 @@ controls the scope over USB. See [CHANGELOG.md](CHANGELOG.md) for everything tha
 
 | Path | Content |
 |---|---|
-| `firmware/APP_DSO-510_v4.17.bin` | firmware image (based on the original APP V2.0.5 250114) |
+| `firmware/APP_DSO-510_v4.18.bin` | firmware image (based on the original APP V2.0.5 250114) |
 | `bin/DSO-510-Link.exe` | PC application, ready to run (Windows 10/11, x64) |
 | `app/` | source code of the PC application (Rust) |
 | `SHA256SUMS` | checksums of both binaries |
@@ -39,7 +39,7 @@ diagrams are in the panel.
 ## Flashing the firmware
 1. Switch the scope off. Hold the update button while switching it on: the scope appears as the USB drive
    **"AT32 MSC IAP"** (the bootloader, not changed by this firmware).
-2. Copy `firmware/APP_DSO-510_v4.17.bin` to that drive and wait until the scope restarts.
+2. Copy `firmware/APP_DSO-510_v4.18.bin` to that drive and wait until the scope restarts.
 3. Going back to the original firmware works the same way with the original image.
 
 The firmware is a full image: the original firmware with patches. It only works on the DSO-510 with the AT32F403A.

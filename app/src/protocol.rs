@@ -85,9 +85,15 @@ pub struct Frame {
     pub trace_start: u16,
     pub trace_end: u16,
     pub trace: Vec<u8>,
+    /// firmware v4.18: bit 7 = valid, bit 0 = the last acquisition was triggered (0 before)
+    pub trig_state: u8,
 }
 
 impl Frame {
+    /// Some(true / false) = the last acquisition was / was not triggered; None = older firmware
+    pub fn triggered(&self) -> Option<bool> {
+        (self.trig_state & 0x80 != 0).then_some(self.trig_state & 1 != 0)
+    }
     pub fn vdiv_index(&self) -> usize {
         (self.probe as usize * 3 + self.vdiv as usize).min(VDIV_VOLTS.len() - 1)
     }
@@ -209,6 +215,12 @@ pub struct DeepInfo {
     pub running: bool,
     pub trace_start: u16,
     pub trace_end: u16,
+    /// firmware v4.18: `zoom` and `triggered` are sent
+    pub has_flags: bool,
+    /// vertical scale of the scope's screen (calibration value, 0 / 255 = none); screen px = zoom map of the ADC code
+    pub zoom: u8,
+    /// the trigger search found an edge (false: untriggered record)
+    pub triggered: bool,
 }
 
 /// Roll mode (50 ms/div and slower): new screen columns streamed by firmware usb_link v3.1 ('P').
@@ -311,6 +323,7 @@ fn decode(ty: u8, p: &[u8]) -> Message {
                 running: p[9] != 0,
                 trig_level: i16at(10),
                 offset: p[12] as i8,
+                trig_state: p[13],
                 freq_raw: u32at(14) as i32,
                 trace_start: u16at(18),
                 trace_end: u16at(20),
@@ -376,6 +389,9 @@ fn decode(ty: u8, p: &[u8]) -> Message {
             running: p[29] != 0,
             trace_start: u16at(30),
             trace_end: u16at(32),
+            has_flags: p.len() >= 36,
+            zoom: p.get(34).copied().unwrap_or(0),
+            triggered: p.get(35).is_some_and(|&b| b != 0),
         })
         }
         b'P' if p.len() >= 12 => {

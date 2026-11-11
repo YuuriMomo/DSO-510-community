@@ -5,6 +5,11 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
 
 ## Firmware
 
+### v4.18 - trigger status
+- The PC application now learns whether each acquisition was triggered, so it can show the trigger status like a
+  bench scope (Trig'd / WAIT / AUTO) and keep the last triggered record in Normal mode.
+- Full-memory records carry the scope's vertical scale, so the PC shows them exactly like the scope's screen.
+
 ### v4.17 - measurement accuracy
 - Frequency is now exact at every time base. Before, it was estimated from the screen and was wrong when the time base
   did not fit the signal (20 kHz at 1 ms/div read 4000 Hz, 50 kHz read 2000 Hz, 10 Hz read 3338 Hz). Now the scope's
@@ -64,6 +69,10 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
 - The time base runs 4.17 % slower than its labels; the automatic measurements and the PC application compensate.
 - In Single mode at 50-500 ns/div the sampling continues after the trigger.
 - The generator cannot make every frequency exactly (e.g. 47000 Hz -> 48000 Hz); the scope shows the real frequency.
+- Vertical calibration: the original firmware stores a vertical scale in its settings. If the settings are empty, the
+  first press of AUTO measures it from the screen, and with no proper signal the result can be wrong: all voltages
+  are then shown too large or too small on every range (seen: 1.5x too large). Check with a known voltage, e.g. a
+  battery; a scope that reads correctly needs nothing.
 
 ## DSO-510 Link (PC application)
 
@@ -73,6 +82,14 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
   and the -3 dB frequencies marked, a read-out under the mouse and CSV export. Instructions with connection diagrams
   are in the panel ("How to use"). The scope and generator settings are restored after a sweep.
 - Accuracy: with the probe directly on the generator the result is flat within -0.11 ... +0.23 dB from 20 Hz to 50 kHz.
+
+### Trigger status and full memory
+- Trigger status in the corner of the plot, like a bench scope: **Trig'd** (triggered), **WAIT** (Normal or Single
+  without a trigger: the last triggered waveform stays on the screen), **AUTO** (Auto without a trigger: free running).
+- Normal mode in Full memory: records without a trigger are no longer shown; before, they appeared shifted to the
+  start of the record ("trace from the left edge to the middle").
+- Full memory uses the same vertical scale as the scope's screen: voltages, the trigger level line and the trigger
+  point now agree with the Screen view. The raw export (.bin) still holds the unchanged ADC samples.
 
 ### Other changes
 - Single mode at 50 ms/div and slower shows the captured record.
