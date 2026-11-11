@@ -6,7 +6,7 @@
 //! firmware side: fw/src/usb_link.c and fw/src/remote.c.
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
-use dso510_link::{bode, crashlog, deep, deep_view, device, export, i18n, link, measure, protocol, scope, spectrum, spectrum_view};
+use dso510_link::{bode, crashlog, deep, deep_view, device, export, i18n, link, logo, measure, protocol, scope, spectrum, spectrum_view};
 use i18n::{tr, trf};
 use eframe::egui::{self, Color32, RichText};
 use link::{Event, Link};
@@ -198,6 +198,18 @@ struct App {
     /// width of the top bar's right side (last frame) and whether it went to a second row
     top_right_w: f32,
     top_wrapped: bool,
+    /// start-up picture: source image, how it is fitted, the result and its preview, a running upload
+    logo_src: Option<(String, image::DynamicImage)>,
+    logo_fit: logo::Fit,
+    logo_ready: Option<logo::Prepared>,
+    logo_tex: Option<egui::TextureHandle>,
+    logo_up: Option<logo::Upload>,
+    logo_msg: Option<(String, bool)>,
+    /// open the section on the next frame (a picture was dropped on the window)
+    logo_open: bool,
+    /// the last upload failed because the scope's drive is full / broken: offer the repair
+    logo_repair: bool,
+    logo_repair_confirm: bool,
     /// the firmware answered "THYST": it has the hysteresis
     thyst_ok: bool,
 }
@@ -276,6 +288,15 @@ impl App {
             thyst_ok: false,
             top_right_w: 0.0,
             top_wrapped: false,
+            logo_src: None,
+            logo_fit: logo::Fit::Crop,
+            logo_ready: None,
+            logo_tex: None,
+            logo_up: None,
+            logo_msg: None,
+            logo_open: false,
+            logo_repair: false,
+            logo_repair_confirm: false,
         }
     }
 
@@ -489,6 +510,12 @@ impl App {
                     if t.starts_with("THYST ") {
                         self.thyst_ok = true;
                     }
+                    if let Some(up) = self.logo_up.as_mut() {
+                        up.reply(&t);
+                    }
+                    if t.starts_with("LOGOD ") {
+                        continue;                        // one per upload line: not in the log
+                    }
                     if t.starts_with("ERR SCREEN") {
                         self.notify(tr("The scope must show the matching screen for this setting"));
                     } else if t.starts_with("BUSY") {
@@ -626,7 +653,9 @@ impl App {
     }
     fn open_file(&mut self, path: &std::path::Path) {
         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
-        if ext == "dsos" {
+        if logo::is_image(path) {
+            self.load_logo(path);
+        } else if ext == "dsos" {
             match export::load_session(path) {
                 Ok(frames) if !frames.is_empty() => {
                     let n = frames.len();
@@ -977,6 +1006,7 @@ impl App {
                 });
                 self.generator_ui(ui, v2 && connected);
                 self.instrument_ui(ui, v2 && connected);
+                self.logo_ui(ui, connected);
                 self.advanced_ui(ui, connected);
             });
         });
@@ -1842,6 +1872,140 @@ impl App {
         });
     }
 
+    fn load_logo(&mut self, path: &std::path::Path) {
+        match logo::load(path) {
+            Ok(img) => {
+                let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                self.logo_src = Some((name, img));
+                self.logo_msg = None;
+                self.prepare_logo();
+                self.logo_open = true;
+            }
+            Err(e) => self.notify(format!("{}: {e}", path.display())),
+        }
+    }
+
+    fn prepare_logo(&mut self) {
+        let Some((_, img)) = &self.logo_src else { return };
+        match logo::prepare(img, self.logo_fit) {
+            Ok(p) => {
+                self.logo_tex = None;                   // made from it when drawn
+                self.logo_ready = Some(p);
+            }
+            Err(e) => {
+                self.logo_ready = None;
+                self.logo_msg = Some((e, false));
+            }
+        }
+    }
+
+    /// upload / delete in progress: send what the protocol asks for, report the end
+    fn logo_tick(&mut self, ctx: &egui::Context) {
+        let Some(up) = self.logo_up.as_mut() else { return };
+        if self.conn != ConnState::Connected {
+            self.logo_up = None;
+            self.logo_msg = Some((tr("Connection lost - nothing was changed on the scope.").to_string(), false));
+            return;
+        }
+        for c in up.step() {
+            self.link.send(&c);
+        }
+        if up.finished() {
+            self.logo_repair = matches!(&up.state, logo::State::Failed(e) if logo::needs_repair(e));
+            self.logo_repair_confirm = false;
+            let msg = match &up.state {
+                logo::State::Done if up.is_format() => (tr("The scope's drive is repaired. Upload the picture again.").to_string(), true),
+                logo::State::Done if up.is_delete() => (tr("Removed: the scope shows its own animated logo again at the next start.").to_string(), true),
+                logo::State::Done => (tr("Saved. Switch the scope off and on to see it.").to_string(), true),
+                logo::State::Failed(e) if logo::needs_repair(e) => (trf("Failed: {}", &[&tr("the scope's storage (drive 2:) is full or damaged. Your scope's own gallery cannot use it either.")]), false),
+                logo::State::Failed(e) => (trf("Failed: {}", &[e]), false),
+                _ => unreachable!(),
+            };
+            self.log(msg.0.clone());
+            self.logo_msg = Some(msg);
+            self.logo_up = None;
+        } else {
+            ctx.request_repaint_after(Duration::from_millis(5));
+        }
+    }
+
+    fn logo_ui(&mut self, ui: &mut egui::Ui, connected: bool) {
+        self.logo_tick(&ui.ctx().clone());
+        if std::mem::take(&mut self.logo_open) {
+            let id = ui.make_persistent_id(("section", tr("Start-up picture")));   // as section() keeps it
+            ui.data_mut(|d| d.insert_temp(id, true));
+        }
+        if let (None, Some(p)) = (&self.logo_tex, &self.logo_ready) {
+            let ci = egui::ColorImage::from_rgb([p.rgb.width() as usize, p.rgb.height() as usize], p.rgb.as_raw());
+            self.logo_tex = Some(ui.ctx().load_texture("logo", ci, egui::TextureOptions::LINEAR));
+        }
+        section(ui, tr("Start-up picture"), tr("Your own picture when the scope starts: it fades in from black like the factory logo. Any image (PNG, JPG, BMP, GIF) is fitted to the 320 × 240 screen. Choose it here or drop the file on the window. Needs firmware v4.20."), false, |ui| {
+            ui.horizontal(|ui| {
+                if ui.button(tr("Choose picture…")).clicked() {
+                    if let Some(p) = pick_image_file() {
+                        self.load_logo(&p);
+                    }
+                }
+                if let Some((name, _)) = &self.logo_src {
+                    ui.small(name.clone());
+                }
+            });
+            if self.logo_src.is_some() {
+                ui.horizontal(|ui| {
+                    let before = self.logo_fit;
+                    ui.selectable_value(&mut self.logo_fit, logo::Fit::Crop, tr("Fill the screen"));
+                    ui.selectable_value(&mut self.logo_fit, logo::Fit::Bars, tr("Whole picture"));
+                    help_tip(ui, tr("Fill the screen: the picture covers all of it, what sticks out is cut off. Whole picture: nothing is cut off, black bars fill the rest."));
+                    if self.logo_fit != before {
+                        self.prepare_logo();
+                    }
+                });
+            }
+            if let (Some(tex), Some(p)) = (&self.logo_tex, &self.logo_ready) {
+                let w = ui.available_width().min(logo::W as f32);
+                ui.add(egui::Image::new((tex.id(), egui::vec2(w, w * 0.75))));
+                ui.small(trf("As the scope shows it: 320 × 240, JPEG {} KB (quality {})", &[&format!("{:.1}", p.jpeg.len() as f32 / 1024.0), &p.quality]));
+            }
+            let busy = self.logo_up.is_some();
+            ui.add_enabled_ui(connected && !busy, |ui| {
+                ui.horizontal(|ui| {
+                    if ui.add_enabled(self.logo_ready.is_some(), egui::Button::new(tr("Upload to the scope"))).clicked() {
+                        if let Some(p) = &self.logo_ready {
+                            self.logo_up = Some(logo::Upload::new(p.jpeg.clone()));
+                            self.logo_msg = None;
+                        }
+                    }
+                    if ui.button(tr("Factory logo")).on_hover_text(tr("Remove your picture: the scope shows its own animated logo again")).clicked() {
+                        self.logo_up = Some(logo::Upload::delete());
+                        self.logo_msg = None;
+                    }
+                });
+            });
+            if self.logo_repair && self.logo_up.is_none() {
+                ui.add_enabled_ui(connected, |ui| {
+                    ui.checkbox(&mut self.logo_repair_confirm, tr("I agree to erase the scope's drive 2: (start-up picture and screenshots)"));
+                    ui.horizontal(|ui| {
+                        if ui.add_enabled(self.logo_repair_confirm, egui::Button::new(tr("Repair the drive (quick format)"))).clicked() {
+                            self.logo_up = Some(logo::Upload::format());
+                            self.logo_msg = None;
+                            self.logo_repair = false;
+                        }
+                        help_tip(ui, tr("Empties the file tables of the scope's 5 MB drive for pictures (2:) and creates its folders again. The drive with the scope's own interface graphics (3:) is not touched. The original firmware cannot format it, so a damaged drive stays full forever."));
+                    });
+                });
+            }
+            if let Some(up) = &self.logo_up {
+                let text = if up.is_format() {
+                    tr("repairing…").to_string()
+                } else if up.is_delete() { tr("removing…").to_string() } else { trf("{} of {} KB", &[&format!("{:.1}", up.acked as f32 / 1024.0), &format!("{:.1}", up.total() as f32 / 1024.0)]) };
+                ui.add(egui::ProgressBar::new(up.progress()).text(text));
+            }
+            if let Some((m, ok)) = &self.logo_msg {
+                ui.colored_label(if *ok { GOOD } else { BAD }, m);
+            }
+        });
+    }
+
     fn advanced_ui(&mut self, ui: &mut egui::Ui, connected: bool) {
         section(ui, tr("Front panel & advanced"), tr("Virtual buttons of the scope, download of the raw sample buffer and diagnostic commands."), false, |ui| {
             ui.add_enabled_ui(connected, |ui| {
@@ -1917,6 +2081,24 @@ fn main() -> eframe::Result {
         crashlog::end_session();
     }
     result
+}
+
+/// Windows "Open" dialog for a picture (modal: the window waits, the USB link keeps running)
+fn pick_image_file() -> Option<std::path::PathBuf> {
+    use windows_sys::Win32::UI::Controls::Dialogs::{GetOpenFileNameW, OFN_FILEMUSTEXIST, OFN_NOCHANGEDIR, OPENFILENAMEW};
+    let filter: Vec<u16> = format!("{}\0*.png;*.jpg;*.jpeg;*.bmp;*.gif\0\0", tr("Pictures")).encode_utf16().collect();
+    let mut buf = vec![0u16; 1024];
+    let mut ofn: OPENFILENAMEW = unsafe { std::mem::zeroed() };
+    ofn.lStructSize = std::mem::size_of::<OPENFILENAMEW>() as u32;
+    ofn.lpstrFilter = filter.as_ptr();
+    ofn.lpstrFile = buf.as_mut_ptr();
+    ofn.nMaxFile = buf.len() as u32;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+    if unsafe { GetOpenFileNameW(&mut ofn) } == 0 {
+        return None;
+    }
+    let n = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+    Some(std::path::PathBuf::from(String::from_utf16_lossy(&buf[..n])))
 }
 
 #[cfg(test)]

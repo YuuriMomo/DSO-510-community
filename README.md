@@ -5,7 +5,7 @@ controls the scope over USB. See [CHANGELOG.md](CHANGELOG.md) for everything tha
 
 | Path | Content |
 |---|---|
-| `firmware/APP_DSO-510_v4.19.bin` | firmware image (based on the original APP V2.0.5 250114) |
+| `firmware/APP_DSO-510_v4.20.bin` | firmware image (based on the original APP V2.0.5 250114) |
 | `bin/DSO-510-Link.exe` | PC application, ready to run (Windows 10/11, x64) |
 | `bin/DSO-510-Calibrate.exe` | calibration of the voltage readings with a known DC voltage |
 | `app/` | source code of the PC application (Rust) |
@@ -40,7 +40,7 @@ diagrams are in the panel.
 ## Flashing the firmware
 1. Switch the scope off. Hold the update button while switching it on: the scope appears as the USB drive
    **"AT32 MSC IAP"** (the bootloader, not changed by this firmware).
-2. Copy `firmware/APP_DSO-510_v4.19.bin` to that drive and wait until the scope restarts.
+2. Copy `firmware/APP_DSO-510_v4.20.bin` to that drive and wait until the scope restarts.
 3. Going back to the original firmware works the same way with the original image.
 
 The firmware is a full image: the original firmware with patches. It only works on the DSO-510 with the AT32F403A.
@@ -58,6 +58,11 @@ The firmware is a full image: the original firmware with patches. It only works 
 6. **Time selection** in Full memory: drag with the right mouse button over the plot, or with the left button along
    the time axis. The selection shows Δt and 1/Δt; measurements, FFT and "CSV (visible)" use only the selected
    samples. Double-click inside it to zoom to it; right click or Esc removes it.
+7. **Start-up picture** (firmware v4.20): section "Start-up picture" in the side panel. Choose any image (PNG, JPG,
+   BMP, GIF) or drop it on the window; it is fitted to the 320 × 240 screen ("Fill the screen" crops, "Whole
+   picture" adds black bars), shown as the scope will show it and uploaded over the USB cable in about a second.
+   At the next start it fades in from black like the factory logo. "Factory logo" brings the original animation
+   back.
 
 ## Calibrating the voltage readings
 The scope keeps one vertical scale factor in its settings, shared by all V/div ranges. The original firmware sets it
@@ -82,6 +87,14 @@ the probe at x1. If the scope shows it within a few percent, nothing needs to be
 shows the instructions as well, in English and Polish, and warns about the usual mistakes (probe switch at x10,
 no contact, a changing signal instead of a DC voltage).
 
+## Start-up picture: notes
+- The picture is stored as `BOOTLOGO.JPG` in the root of the scope's 5 MB picture drive (2:); at start the
+  firmware looks for it first, then for the original `2:/LOGO/LOGODSO-510.jpg`.
+- If the upload ends with "storage full or damaged": on some units this drive is full of lost data and its folders
+  are unusable (the scope's own screenshot gallery does not work either). The application then offers
+  **Repair the drive (quick format)**: it empties the drive's file tables and creates its folders again (the
+  original firmware has no working format). The drive with the scope's interface graphics (3:) is not touched.
+
 ## Building the application
 ```
 cd app
@@ -92,7 +105,7 @@ Requires Rust (edition 2024). The `examples/` folder holds the device test tools
 trigger tests, measurement matrix, frequency response test); they talk to a connected scope.
 
 ## Notes
-- New diagnostic commands of the firmware (`PROF`, `PROFD`, `TRIGTEST`, `THYST`, `FASTBUILD`, `FREQHW`, `BATT`, `PEEK`, ...)
+- New diagnostic commands of the firmware (`PROF`, `PROFD`, `TRIGTEST`, `THYST`, `LOGO`, `FASTBUILD`, `FREQHW`, `BATT`, `PEEK`, ...)
   are text lines sent over the USB link. The application offers INFO / DIAG / GET under "Front panel & advanced";
   the tools in `app/examples/` (e.g. `prof`, `trigtest`, `freqhw`) send the others.
 - Use at your own risk. The bootloader is untouched, so the original firmware can always be restored.

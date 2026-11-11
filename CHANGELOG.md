@@ -5,6 +5,18 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
 
 ## Firmware
 
+### v4.20 - start-up picture
+- Your own start-up picture: a 320 × 240 JPEG that fades in from black at start (backlight ramp, ~0.8 s, to the
+  stored backlight level, then shown for ~1 s), like the factory logo. Without it the factory animation stays.
+- Upload over the USB cable (`LOGO BEGIN` / `LOGOD` / `LOGO SAVE` with CRC32, acknowledged chunks; about a
+  second); `LOGO DELETE` brings the factory animation back. The file is `2:/BOOTLOGO.JPG`; the original
+  `2:/LOGO/LOGODSO-510.jpg` is still used when ours is missing.
+- `LOGO FORMAT 2`: quick format of the picture drive 2: (only when its boot sector has the known FAT12 layout).
+  On a tested unit this drive was full of lost data with unusable folders, so neither the original logo file nor
+  screenshots could be written; the original firmware's format function is a stub. `LOGO TEST` reports the file
+  system results.
+- The command receive buffer is larger (512 bytes) and emptied every 10 ms.
+
 ### v4.19 - trigger hysteresis (noise reject)
 - New command `THYST n`: trigger hysteresis in screen pixels (25 per division), like the noise reject of bench
   scopes. An edge counts only after the signal went beyond the band on the other side of the level, so noise on the
@@ -84,6 +96,11 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
   battery; a scope that reads correctly needs nothing, otherwise use DSO-510 Calibrate (see the README).
 
 ## DSO-510 Link (PC application)
+
+### New: start-up picture
+- Section "Start-up picture": choose an image or drop it on the window, "Fill the screen" or "Whole picture",
+  preview exactly as the scope shows it, upload with a progress bar, "Factory logo" to remove it.
+- When the scope's picture drive is full or damaged, a confirmed "Repair the drive (quick format)" button.
 
 ### New: noise reject and time selection
 - **Noise reject** switch in the Trigger section (firmware v4.19): 0.4 div trigger hysteresis; remembered and sent

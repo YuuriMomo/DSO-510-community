@@ -6,8 +6,9 @@ default-run = "dso510-link"
 
 [dependencies]
 eframe = "0.37.0"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
 nusb = "0.2.9"
 png = "0.18.1"
 rustfft = "6.4.1"
 serialport = "4.10.1"
-windows-sys = { version = "0.61.2", features = ["Win32_Devices_DeviceAndDriverInstallation", "Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Devices_DeviceAndDriverInstallation", "Win32_Foundation", "Win32_UI_Controls_Dialogs", "Win32_UI_WindowsAndMessaging"] }

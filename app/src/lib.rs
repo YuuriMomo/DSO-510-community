@@ -9,6 +9,7 @@ pub mod device;
 pub mod export;
 pub mod i18n;
 pub mod link;
+pub mod logo;
 pub mod measure;
 pub mod protocol;
 pub mod scope;
