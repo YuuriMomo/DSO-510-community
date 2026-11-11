@@ -2,6 +2,7 @@
 name = "dso510-link"
 version = "0.1.0"
 edition = "2024"
+default-run = "dso510-link"
 
 [dependencies]
 eframe = "0.37.0"

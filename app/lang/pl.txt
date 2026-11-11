@@ -355,3 +355,63 @@ Step 1: reference = Krok 1: wzorzec
 Step 2: measurement = Krok 2: pomiar
 Trig'd = WYZW.
 WAIT = CZEKA
+
+# ---- DSO-510 Calibrate ----
+No DSO-510 found: connect it with a USB data cable and switch it on. = Nie znaleziono DSO-510: podłącz go kablem USB z transmisją danych i włącz.
+The scope is in use (close DSO-510 Link) = Oscyloskop jest zajęty (zamknij DSO-510 Link)
+No answer to PEEK: the firmware is too old. = Brak odpowiedzi na PEEK: za stary firmware.
+No status from the scope. = Brak statusu z oscyloskopu.
+No full-memory records: is the scope showing the oscilloscope screen? = Brak rekordów pełnej pamięci: czy oscyloskop jest na ekranie pomiaru?
+No screen frames from the scope. = Brak ramek ekranu z oscyloskopu.
+The scope did not take the new value. = Oscyloskop nie przyjął nowej wartości.
+Connecting = Łączenie
+not connected = nie połączono
+Reconnect = Połącz ponownie
+Corrects the scope's voltage readings with one DC voltage you know. All V/div ranges share one scale factor, so one voltage calibrates them all. = Poprawia odczyty napięcia oscyloskopu na podstawie jednego znanego napięcia stałego. Wszystkie zakresy V/dz mają wspólny współczynnik skali, więc jedno napięcie kalibruje je wszystkie.
+Scale in the scope: = Skala w oscyloskopie:
+{} (factor {}: the screen shows {} x the input) = {} (współczynnik {}: ekran pokazuje {} x wejście)
+The scope has no scale stored ({}): its AUTO button would measure one from the screen. Calibrate it here instead. = Oscyloskop nie ma zapisanej skali ({}): jego przycisk AUTO zmierzyłby ją z ekranu. Skalibruj go tutaj.
+Known voltage = Znane napięcie
+Enter the voltage measured with a multimeter (a negative value for a negative voltage). = Wpisz napięcie zmierzone multimetrem (wartość ujemna dla ujemnego napięcia).
+This voltage fits no range (0.01 V ... about 36 V with the probe at x1). = To napięcie nie mieści się w żadnym zakresie (0,01 V ... ok. 36 V z sondą na x1).
+Measured on: {} = Pomiar na: {}
+1. Measure zero = 1. Zmierz zero
+Probe tip clipped to its own ground clip (0 V) = Grot sondy podpięty do jej krokodylka masy (0 V)
+Measuring zero = Pomiar zera
+zero error: {} = błąd zera: {}
+optional, makes the result more accurate = opcjonalnie, wynik będzie dokładniejszy
+2. Measure the voltage = 2. Zmierz napięcie
+Probe tip on +, ground clip on - of the known voltage = Grot sondy na +, krokodylek masy na - znanego napięcia
+Measuring the voltage = Pomiar napięcia
+{}: {} ({}/{}), about {} s left = {}: {} ({}/{}), zostało ok. {} s
+Result = Wynik
+ADC reads = przetwornik mierzy
+the screen showed = ekran pokazywał
+after calibration = po kalibracji
+The signal is not steady (it moves by more than half a division): use a DC voltage, not the generator, and check the contacts. = Sygnał nie jest stały (zmienia się o ponad pół działki): użyj napięcia stałego, nie generatora, i sprawdź styki.
+The ADC reads about a tenth: the switch on the probe is at x10, set it to x1. = Przetwornik mierzy ok. jednej dziesiątej: przełącznik na sondzie jest na x10, ustaw x1.
+The ADC reads almost nothing: the probe is not connected to the voltage. = Przetwornik prawie nic nie mierzy: sonda nie jest podłączona do napięcia.
+The ADC reads the opposite sign: swap the probe tip and the ground clip, or enter a negative voltage. = Przetwornik mierzy odwrotny znak: zamień grot z krokodylkiem masy albo wpisz napięcie ujemne.
+The difference is too large for a calibration error: check the voltage you entered and the connection. = Różnica jest za duża na błąd kalibracji: sprawdź wpisane napięcie i połączenie.
+Measured {} x the entered voltage. {} = Zmierzono {} x wpisane napięcie. {}
+Measured {} x the entered voltage: new scale {} (factor {}). = Zmierzono {} x wpisane napięcie: nowa skala {} (współczynnik {}).
+Apply = Zastosuj
+Writing = Zapis
+Written: scale {}. The screen now shows {} V ({}% against the known voltage). = Zapisano: skala {}. Ekran pokazuje teraz {} V ({}% względem znanego napięcia).
+Switch the scope off with its power button now: it saves the scale in its settings then. Unplugging or a reset does not save it. = Teraz wyłącz oscyloskop przyciskiem zasilania: dopiero wtedy zapisze skalę w ustawieniach. Odłączenie zasilania albo reset jej nie zapisze.
+Restore the value read at start ({}) = Przywróć wartość z początku ({})
+Set factor 1.0 ({}) = Ustaw współczynnik 1,0 ({})
+No correction: the screen shows the ADC as it is (accurate to a few percent on most units) = Bez korekty: ekran pokazuje przetwornik bez zmian (na większości egzemplarzy dokładny do kilku procent)
+{} V/div = {} V/dz
+You need: a DC voltage you know, measured with a multimeter (a battery, 3.3 V or 5 V from a board or a USB port, a lab supply). Best between 1 and 10 V; with the probe at x1 up to about 36 V. Not the scope's own generator: it is not a calibrated reference.\n\n1. Close DSO-510 Link (only one program can use the scope), connect the scope with USB and switch it on.\n2. Set the switch on the probe to x1.\n3. Enter the voltage you measured with the multimeter.\n4. Step 1 (optional, more accurate): clip the probe tip to its own ground clip and press "1. Measure zero".\n5. Step 2: probe tip on the plus, ground clip on the minus of the voltage, press "2. Measure the voltage". The program sets the scope itself (DC, probe x1, Auto, several V/div ranges) and puts your settings back afterwards.\n6. Check the table and press "Apply". The program writes the new scale and reads the screen again.\n7. Switch the scope off with its power button: only then the scale is saved in its settings.\n\nUndo: "Restore the value read at start" or "Set factor 1.0", then switch off with the button again. = Potrzebujesz: napięcia stałego, które znasz, zmierzonego multimetrem (bateria, 3,3 V lub 5 V z płytki albo portu USB, zasilacz laboratoryjny). Najlepiej od 1 do 10 V; z sondą na x1 do ok. 36 V. Nie generator oscyloskopu: to nie jest skalibrowane źródło.
+
+1. Zamknij DSO-510 Link (oscyloskopu może używać tylko jeden program), podłącz oscyloskop przez USB i włącz go.
+2. Ustaw przełącznik na sondzie na x1.
+3. Wpisz napięcie zmierzone multimetrem.
+4. Krok 1 (opcjonalny, dokładniejszy): podepnij grot sondy do jej własnego krokodylka masy i naciśnij "1. Zmierz zero".
+5. Krok 2: grot sondy na plus, krokodylek masy na minus napięcia, naciśnij "2. Zmierz napięcie". Program sam ustawia oscyloskop (DC, sonda x1, Auto, kilka zakresów V/dz) i potem przywraca Twoje ustawienia.
+6. Sprawdź tabelę i naciśnij "Zastosuj". Program wpisuje nową skalę i ponownie odczytuje ekran.
+7. Wyłącz oscyloskop jego przyciskiem zasilania: dopiero wtedy skala zapisuje się w ustawieniach.
+
+Cofnięcie: "Przywróć wartość z początku" albo "Ustaw współczynnik 1,0", potem znowu wyłącz przyciskiem.
+Internal error: = Błąd wewnętrzny:

@@ -7,6 +7,7 @@ controls the scope over USB. See [CHANGELOG.md](CHANGELOG.md) for everything tha
 |---|---|
 | `firmware/APP_DSO-510_v4.18.bin` | firmware image (based on the original APP V2.0.5 250114) |
 | `bin/DSO-510-Link.exe` | PC application, ready to run (Windows 10/11, x64) |
+| `bin/DSO-510-Calibrate.exe` | calibration of the voltage readings with a known DC voltage |
 | `app/` | source code of the PC application (Rust) |
 | `SHA256SUMS` | checksums of both binaries |
 
@@ -52,10 +53,33 @@ The firmware is a full image: the original firmware with patches. It only works 
    on the right under "How to use").
 4. Language: menu 🌐 (Polish, English). Exports go to `Documents\DSO-510`.
 
+## Calibrating the voltage readings
+The scope keeps one vertical scale factor in its settings, shared by all V/div ranges. The original firmware sets it
+by itself the first time AUTO is pressed while the settings are empty, from whatever is on the screen at that moment,
+so it can be wrong; then every voltage is shown too large or too small by the same factor (seen on one unit: 1.5x
+too large).
+
+**Check first:** measure a voltage you know (a battery, 3.3 V or 5 V, checked with a multimeter) with DC coupling and
+the probe at x1. If the scope shows it within a few percent, nothing needs to be done.
+
+**To calibrate** start `bin/DSO-510-Calibrate.exe` (close DSO-510 Link first: only one program can use the scope):
+1. Set the switch on the probe to x1 and enter the voltage you measured with the multimeter. Best between 1 and 10 V,
+   any DC source; not the scope's own generator.
+2. Optional, more accurate: clip the probe tip to its own ground clip and press **1. Measure zero**.
+3. Probe tip on the plus, ground clip on the minus, press **2. Measure the voltage**. The program sets the scope by
+   itself (DC, x1, Auto, every V/div range where the voltage fits) and restores your settings afterwards.
+4. Check the table (what the ADC measures, what the screen showed, what it will show) and press **Apply**. The
+   program writes the new factor and reads the screen again.
+5. **Switch the scope off with its power button**: only then the factor is saved in its settings.
+
+"Restore the value read at start" and "Set factor 1.0" undo it (then switch off with the button again). The program
+shows the instructions as well, in English and Polish, and warns about the usual mistakes (probe switch at x10,
+no contact, a changing signal instead of a DC voltage).
+
 ## Building the application
 ```
 cd app
-cargo build --release        # target\release\dso510-link.exe
+cargo build --release        # target\release\dso510-link.exe and dso510-calibrate.exe
 cargo test --release         # unit tests and UI tests
 ```
 Requires Rust (edition 2024). The `examples/` folder holds the device test tools used during development (profiling,

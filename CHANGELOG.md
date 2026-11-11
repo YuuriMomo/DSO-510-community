@@ -72,7 +72,7 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
 - Vertical calibration: the original firmware stores a vertical scale in its settings. If the settings are empty, the
   first press of AUTO measures it from the screen, and with no proper signal the result can be wrong: all voltages
   are then shown too large or too small on every range (seen: 1.5x too large). Check with a known voltage, e.g. a
-  battery; a scope that reads correctly needs nothing.
+  battery; a scope that reads correctly needs nothing, otherwise use DSO-510 Calibrate (see the README).
 
 ## DSO-510 Link (PC application)
 
@@ -82,6 +82,12 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
   and the -3 dB frequencies marked, a read-out under the mouse and CSV export. Instructions with connection diagrams
   are in the panel ("How to use"). The scope and generator settings are restored after a sweep.
 - Accuracy: with the probe directly on the generator the result is flat within -0.11 ... +0.23 dB from 20 Hz to 50 kHz.
+
+### New: DSO-510 Calibrate
+- A separate program (`bin/DSO-510-Calibrate.exe`) that corrects the voltage readings with one DC voltage you know:
+  optional zero measurement, measurement on every V/div range where the voltage fits, a table of what the scope
+  showed and will show, writing the new factor and checking the screen afterwards. Step-by-step instructions in
+  the window (English, Polish), warnings for a probe at x10, no contact or a changing signal; undo buttons.
 
 ### Trigger status and full memory
 - Trigger status in the corner of the plot, like a bench scope: **Trig'd** (triggered), **WAIT** (Normal or Single
