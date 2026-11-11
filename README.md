@@ -5,7 +5,7 @@ controls the scope over USB. See [CHANGELOG.md](CHANGELOG.md) for everything tha
 
 | Path | Content |
 |---|---|
-| `firmware/APP_DSO-510_v4.18.bin` | firmware image (based on the original APP V2.0.5 250114) |
+| `firmware/APP_DSO-510_v4.19.bin` | firmware image (based on the original APP V2.0.5 250114) |
 | `bin/DSO-510-Link.exe` | PC application, ready to run (Windows 10/11, x64) |
 | `bin/DSO-510-Calibrate.exe` | calibration of the voltage readings with a known DC voltage |
 | `app/` | source code of the PC application (Rust) |
@@ -40,7 +40,7 @@ diagrams are in the panel.
 ## Flashing the firmware
 1. Switch the scope off. Hold the update button while switching it on: the scope appears as the USB drive
    **"AT32 MSC IAP"** (the bootloader, not changed by this firmware).
-2. Copy `firmware/APP_DSO-510_v4.18.bin` to that drive and wait until the scope restarts.
+2. Copy `firmware/APP_DSO-510_v4.19.bin` to that drive and wait until the scope restarts.
 3. Going back to the original firmware works the same way with the original image.
 
 The firmware is a full image: the original firmware with patches. It only works on the DSO-510 with the AT32F403A.
@@ -52,6 +52,12 @@ The firmware is a full image: the original firmware with patches. It only works 
    **Frequency response** (Bode plot with the built-in generator; instructions and connection diagrams in the panel
    on the right under "How to use").
 4. Language: menu 🌐 (Polish, English). Exports go to `Documents\DSO-510`.
+5. **Noise reject** (Trigger section, firmware v4.19): trigger hysteresis like a bench scope. Noise riding on the
+   signal no longer moves the trigger point, so the picture stops jumping. The level must then be at least 0.4 div
+   inside the signal's swing.
+6. **Time selection** in Full memory: drag with the right mouse button over the plot, or with the left button along
+   the time axis. The selection shows Δt and 1/Δt; measurements, FFT and "CSV (visible)" use only the selected
+   samples. Double-click inside it to zoom to it; right click or Esc removes it.
 
 ## Calibrating the voltage readings
 The scope keeps one vertical scale factor in its settings, shared by all V/div ranges. The original firmware sets it
@@ -86,7 +92,7 @@ Requires Rust (edition 2024). The `examples/` folder holds the device test tools
 trigger tests, measurement matrix, frequency response test); they talk to a connected scope.
 
 ## Notes
-- New diagnostic commands of the firmware (`PROF`, `PROFD`, `TRIGTEST`, `FASTBUILD`, `FREQHW`, `BATT`, `PEEK`, ...)
+- New diagnostic commands of the firmware (`PROF`, `PROFD`, `TRIGTEST`, `THYST`, `FASTBUILD`, `FREQHW`, `BATT`, `PEEK`, ...)
   are text lines sent over the USB link. The application offers INFO / DIAG / GET under "Front panel & advanced";
   the tools in `app/examples/` (e.g. `prof`, `trigtest`, `freqhw`) send the others.
 - Use at your own risk. The bootloader is untouched, so the original firmware can always be restored.

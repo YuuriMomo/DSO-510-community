@@ -5,6 +5,15 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
 
 ## Firmware
 
+### v4.19 - trigger hysteresis (noise reject)
+- New command `THYST n`: trigger hysteresis in screen pixels (25 per division), like the noise reject of bench
+  scopes. An edge counts only after the signal went beyond the band on the other side of the level, so noise on the
+  signal no longer triggers. Off by default (`THYST 0`): the scope then triggers exactly as before.
+- Measured with a square wave and the level on its flat top: without hysteresis about 40 % of the triggers landed
+  on the noise of the top (the picture jumps), with `THYST 10` all of them on the edges.
+- No slower than before: the hysteresis is part of the trigger map built once per acquisition (on noise about
+  0.1 ms per search).
+
 ### v4.18 - trigger status
 - The PC application now learns whether each acquisition was triggered, so it can show the trigger status like a
   bench scope (Trig'd / WAIT / AUTO) and keep the last triggered record in Normal mode.
@@ -75,6 +84,18 @@ the **DSO-510 Link** PC application. The scope reports the firmware version as `
   battery; a scope that reads correctly needs nothing, otherwise use DSO-510 Calibrate (see the README).
 
 ## DSO-510 Link (PC application)
+
+### New: noise reject and time selection
+- **Noise reject** switch in the Trigger section (firmware v4.19): 0.4 div trigger hysteresis; remembered and sent
+  to the scope on every connection. Greyed out with older firmware.
+- **Time selection** in Full memory: right-drag over the plot or left-drag along the time axis (Shift + left drag
+  too). Shows Δt, 1/Δt and the number of samples; the measurements, the FFT and "CSV (visible)" use only the
+  selection; its edges can be dragged. Double-click inside it or "Zoom to selection" zooms to it; right click, Esc
+  or "Clear selection" removes it.
+- On a narrow window the buttons on the right of the top bar (RUN, Single, AUTO, saving) move to a second row
+  instead of covering the view buttons.
+- The zoom buttons of Full memory showed empty boxes (a character missing from the fonts); a test now checks every
+  character the program shows.
 
 ### New: frequency response
 - **Frequency response** view: Bode magnitude plot with the scope's own generator, 10 Hz - 50 kHz. Step 1 "Reference"

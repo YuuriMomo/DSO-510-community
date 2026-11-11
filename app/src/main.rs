@@ -127,6 +127,9 @@ impl Pending {
     }
 }
 
+/// Trigger hysteresis with noise reject: screen pixels (25 per division)
+const NOISE_REJECT_PX: i32 = 10;
+
 struct App {
     link: Link,
     conn: ConnState,
@@ -166,6 +169,8 @@ struct App {
     deep_view: deep_view::DeepView,
     deep_streaming: bool,
     deep_visible: (usize, usize),
+    /// `deep_visible` is the time selection of the Full memory view
+    deep_selected: bool,
     deep_meas_key: Option<(u16, usize, usize, usize)>,
     deep_n: u32,
     deep_rate: f32,
@@ -188,6 +193,13 @@ struct App {
     crash_banner: bool,
     /// last frame whose acquisition was triggered (firmware v4.18)
     last_trig: Option<Instant>,
+    /// Trigger noise reject (hysteresis, firmware v4.19 "THYST"); saved in the settings
+    noise_reject: bool,
+    /// width of the top bar's right side (last frame) and whether it went to a second row
+    top_right_w: f32,
+    top_wrapped: bool,
+    /// the firmware answered "THYST": it has the hysteresis
+    thyst_ok: bool,
 }
 
 impl App {
@@ -240,6 +252,7 @@ impl App {
             deep_view: deep_view::DeepView::default(),
             deep_streaming: false,
             deep_visible: (0, 0),
+            deep_selected: false,
             deep_meas_key: None,
             deep_n: 0,
             deep_rate: 0.0,
@@ -259,6 +272,10 @@ impl App {
             languages: i18n::available(),
             crash_banner: false,
             last_trig: None,
+            noise_reject: i18n::load_setting("noise_reject").as_deref() == Some("1"),
+            thyst_ok: false,
+            top_right_w: 0.0,
+            top_wrapped: false,
         }
     }
 
@@ -322,6 +339,13 @@ impl App {
 
     fn set(&mut self, name: &str, v: i32) {
         self.send(&format!("SET {name} {v}"));
+    }
+
+    /// Trigger hysteresis on the scope: 0.4 div with noise reject (like bench scopes), else none.
+    /// Older firmware answers "ERR unknown command" and the switch stays disabled.
+    fn send_noise_reject(&mut self) {
+        let px = if self.noise_reject { NOISE_REJECT_PX } else { 0 };
+        self.send(&format!("THYST {px}"));
     }
 
     /// The device status, or (firmware v1) the settings carried by the latest frame.
@@ -417,6 +441,8 @@ impl App {
                     self.deep_streaming = false;
                     self.deep_asm = deep::Assembler::default();
                     self.notify(trf("Connected: {}", &[&p.label]));
+                    self.thyst_ok = false;
+                    self.send_noise_reject();
                 }
                 Event::Disconnected(why) => {
                     if self.conn == ConnState::Connected {
@@ -459,6 +485,9 @@ impl App {
                         let v = t.rsplit('v').next().and_then(|v| v.trim().parse().ok()).unwrap_or(1);
                         self.fw_version = self.fw_version.max(v);
                         self.fw_info = t.clone();
+                    }
+                    if t.starts_with("THYST ") {
+                        self.thyst_ok = true;
                     }
                     if t.starts_with("ERR SCREEN") {
                         self.notify(tr("The scope must show the matching screen for this setting"));
@@ -850,36 +879,21 @@ impl App {
                 ui.separator();
                 self.language_menu(ui);
 
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let deep_mode = self.mode == ViewMode::Deep;
-                    let can_csv = if deep_mode { self.shown_deep().is_some() } else { self.shown_frame().is_some() };
-                    let csv_tip = if deep_mode { tr("Save the whole deep capture (30100 samples) as CSV") } else { tr("Save the shown frame as CSV") };
-                    if ui.add_enabled(can_csv, egui::Button::new(tr("CSV"))).on_hover_text(csv_tip).clicked() {
-                        self.save_csv();
-                    }
-                    if ui.add_enabled(!deep_mode && self.shown_frame().is_some(), egui::Button::new(tr("📷 PNG")))
-                        .on_hover_text(tr("Save the shown frame as an image"))
-                        .on_disabled_hover_text(tr("PNG export is for the Screen view; use CSV for deep captures"))
-                        .clicked()
-                    {
-                        self.save_png();
-                    }
-                    if ui.add_enabled(connected, egui::Button::new(tr("💾 Save on scope"))).on_hover_text(tr("Store a screenshot in the scope's gallery")).clicked() {
-                        self.device_shot();
-                    }
-                    ui.separator();
-                    if ui.add_enabled(connected, egui::Button::new(RichText::new(tr("AUTO")).strong())).clicked() {
-                        self.auto();
-                    }
-                    if needs_v2(ui.add_enabled(connected && v2, egui::Button::new(tr("Single"))), v2).clicked() {
-                        self.single();
-                    }
-                    let (txt, col) = if running { (tr("■ STOP"), BAD) } else { (tr("▶ RUN"), GOOD) };
-                    if ui.add_enabled(connected, egui::Button::new(RichText::new(txt).strong().color(Color32::BLACK)).fill(col).min_size(egui::vec2(90.0, 0.0))).clicked() {
-                        self.run_stop();
-                    }
-                });
+                // the actions on the right; in a second row when the window is too narrow for both
+                if ui.available_width() >= self.top_right_w {
+                    let r = ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| self.top_actions(ui, connected, v2, running));
+                    self.top_right_w = r.response.rect.width() + 12.0;
+                    self.top_wrapped = false;
+                } else {
+                    self.top_wrapped = true;
+                }
             });
+            if self.top_wrapped {
+                ui.horizontal(|ui| {
+                    let r = ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| self.top_actions(ui, connected, v2, running));
+                    self.top_right_w = r.response.rect.width() + 12.0;
+                });
+            }
             ui.add_space(4.0);
         });
 
@@ -1004,6 +1018,7 @@ impl App {
                 let can_set = v2 && connected && self.deep_idx.is_none() && !c.is_some_and(|c| c.stream);
                 let out = ui.allocate_ui(egui::vec2(full.x, top_h), |ui| self.deep_view.show(ui, c, badge, can_set)).inner;
                 self.deep_visible = out.visible;
+                self.deep_selected = out.selected;
                 if let Some(l) = out.set_trigger_level {
                     self.ui_tlevel = l as i32;
                     self.set("TLEVEL", l as i32);
@@ -1133,11 +1148,17 @@ impl App {
     fn measurements_ui(&mut self, ui: &mut egui::Ui) {
         let deep_caption = if self.mode == ViewMode::Deep {
             let (a, b) = self.deep_visible;
-            Some(if b > a { trf("from {} samples in the visible window", &[&(b - a)]) } else { tr("from the whole record").to_string() })
+            Some(if b > a && self.deep_selected {
+                trf("from {} samples in the selection", &[&(b - a)])
+            } else if b > a {
+                trf("from {} samples in the visible window", &[&(b - a)])
+            } else {
+                tr("from the whole record").to_string()
+            })
         } else {
             None
         };
-        section(ui, tr("Measurements"), tr("Automatic measurements of the shown trace: levels, frequency, duty cycle and edge times. They are computed in this program; in Full memory from the visible window."), true, |ui| {
+        section(ui, tr("Measurements"), tr("Automatic measurements of the shown trace: levels, frequency, duty cycle and edge times. They are computed in this program; in Full memory from the visible window or the selected time range."), true, |ui| {
             if let Some(c) = &deep_caption {
                 ui.small(c);
             }
@@ -1233,12 +1254,22 @@ impl App {
                 if c.stream && ui.button(tr("Follow live")).on_hover_text(tr("Keep the newest samples at the right edge. While following, the wheel zooms around the newest sample; drag the view into the past to stop following and zoom there.")).clicked() {
                     self.deep_view.follow_end = true;
                 }
-                if ui.button("＋").clicked() {
+                if ui.add(egui::Button::new("+").min_size(egui::vec2(28.0, 0.0))).on_hover_text(tr("zoom in")).clicked() {
                     self.deep_view.zoom(&c, 0.5);
                 }
-                if ui.button("－").clicked() {
+                if ui.add(egui::Button::new("−").min_size(egui::vec2(28.0, 0.0))).on_hover_text(tr("zoom out")).clicked() {
                     self.deep_view.zoom(&c, 2.0);
                 }
+            });
+            ui.horizontal(|ui| {
+                let has = self.deep_view.selection.is_some();
+                if ui.add_enabled(has, egui::Button::new(tr("Zoom to selection"))).on_hover_text(tr("show exactly the selected time range (or double-click inside it)")).clicked() {
+                    self.deep_view.zoom_to_selection(&c);
+                }
+                if ui.add_enabled(has, egui::Button::new(tr("Clear selection"))).on_hover_text(tr("measurements again from the whole visible window (or right-click / Esc)")).clicked() {
+                    self.deep_view.selection = None;
+                }
+                help_tip(ui, tr("Select a time range: drag with the right mouse button over the plot, or with the left button along the time axis under it (Shift + left drag works too). The selection shows its duration Δt and 1/Δt; the measurements, the FFT and \"CSV (visible)\" then use only the selected samples. Its edges can be dragged."));
             });
             ui.horizontal(|ui| {
                 if ui.button(tr("CSV (all)")).clicked() {
@@ -1254,7 +1285,7 @@ impl App {
                     }
                 }
             });
-            ui.small(tr("Wheel: zoom · drag: pan · drag the strip on top: move · double-click: fit. The blue band is the scope's screen. Acquisition pauses while a record is sent (about 5 captures/s)."));
+            ui.small(tr("Wheel: zoom · drag: pan · right-drag or drag on the time axis: select a range · drag the strip on top: move · double-click: fit (inside the selection: zoom to it). The blue band is the scope's screen. Acquisition pauses while a record is sent (about 5 captures/s)."));
             if self.deep_asm.incomplete > 0 {
                 ui.small(trf("incomplete transfers: {}", &[&self.deep_asm.incomplete]));
             }
@@ -1324,6 +1355,37 @@ impl App {
         });
     }
 
+    /// Top bar, right side: RUN / STOP, Single, AUTO, saving.
+    fn top_actions(&mut self, ui: &mut egui::Ui, connected: bool, v2: bool, running: bool) {
+                let deep_mode = self.mode == ViewMode::Deep;
+                let can_csv = if deep_mode { self.shown_deep().is_some() } else { self.shown_frame().is_some() };
+                let csv_tip = if deep_mode { tr("Save the whole deep capture (30100 samples) as CSV") } else { tr("Save the shown frame as CSV") };
+                if ui.add_enabled(can_csv, egui::Button::new(tr("CSV"))).on_hover_text(csv_tip).clicked() {
+                    self.save_csv();
+                }
+                if ui.add_enabled(!deep_mode && self.shown_frame().is_some(), egui::Button::new(tr("📷 PNG")))
+                    .on_hover_text(tr("Save the shown frame as an image"))
+                    .on_disabled_hover_text(tr("PNG export is for the Screen view; use CSV for deep captures"))
+                    .clicked()
+                {
+                    self.save_png();
+                }
+                if ui.add_enabled(connected, egui::Button::new(tr("💾 Save on scope"))).on_hover_text(tr("Store a screenshot in the scope's gallery")).clicked() {
+                    self.device_shot();
+                }
+                ui.separator();
+                if ui.add_enabled(connected, egui::Button::new(RichText::new(tr("AUTO")).strong())).clicked() {
+                    self.auto();
+                }
+                if needs_v2(ui.add_enabled(connected && v2, egui::Button::new(tr("Single"))), v2).clicked() {
+                    self.single();
+                }
+                let (txt, col) = if running { (tr("■ STOP"), BAD) } else { (tr("▶ RUN"), GOOD) };
+                if ui.add_enabled(connected, egui::Button::new(RichText::new(txt).strong().color(Color32::BLACK)).fill(col).min_size(egui::vec2(90.0, 0.0))).clicked() {
+                    self.run_stop();
+                }
+    }
+
     fn trigger_ui(&mut self, ui: &mut egui::Ui, en: bool) {
         let st = self.effective_status();
         section(ui, tr("Trigger"), tr("When the scope starts drawing: the trigger fires when the signal crosses the level in the chosen direction. Normal waits for it, Auto draws without it after a while, Single catches one event."), true, |ui| {
@@ -1349,6 +1411,19 @@ impl App {
                         self.pending.set("TLEVEL", self.ui_tlevel);
                     }
                     help_tip(ui, tr("Voltage at which the trigger fires. Set it inside the signal's swing; you can drag the orange ▶ marker on the right of the screen."));
+                });
+                ui.horizontal(|ui| {
+                    ui.add_enabled_ui(self.thyst_ok, |ui| {
+                        if ui.checkbox(&mut self.noise_reject, tr("Noise reject")).changed() {
+                            i18n::save_setting("noise_reject", if self.noise_reject { "1" } else { "0" });
+                            self.send_noise_reject();
+                        }
+                    });
+                    help_tip(ui, if self.thyst_ok {
+                        tr("Stops noise on the signal from shifting the trigger point: an edge counts only after the signal went 0.4 div to the other side of the level, so the picture stops jittering. The level then has to be at least 0.4 div inside the signal's swing (above its lowest point for a rising edge, below its highest for a falling one).")
+                    } else {
+                        tr("Needs firmware v4.19 or newer.")
+                    });
                 });
                 ui.small(tr("Tip: drag the orange ▶ marker on the screen."));
             });
@@ -1411,7 +1486,7 @@ impl App {
                     }
                 });
             }
-            ui.small(tr("Wheel: zoom · drag: pan · double-click: whole range. In Full memory the spectrum follows the visible window."));
+            ui.small(tr("Wheel: zoom · drag: pan · double-click: whole range. In Full memory the spectrum follows the visible window or the selection."));
         });
     }
 
@@ -1527,7 +1602,9 @@ impl App {
                 self.mode = ViewMode::Screen;
                 self.show_fft = false;
                 self.crash_banner = false;
-                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(1600.0, 900.0)));
+                // DSO510_SHOTS_SIZE=1360x850: another window size (layout checks)
+                let size = std::env::var("DSO510_SHOTS_SIZE").ok().and_then(|v| v.split_once('x').and_then(|(w, h)| Some(egui::vec2(w.parse().ok()?, h.parse().ok()?))));
+                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(size.unwrap_or(egui::vec2(1600.0, 900.0))));
                 ctx.all_styles_mut(|s| s.interaction.tooltip_delay = 1.0e6); // no tooltip under a resting mouse
                 t.step = 1;
                 t.since = Instant::now();
@@ -1853,6 +1930,7 @@ mod ui_tests {
         app: App,
         t: f64,
         pos: Pos2,
+        size: Vec2,
     }
 
     impl Win {
@@ -1864,7 +1942,7 @@ mod ui_tests {
             let trace: Vec<u8> = (0..301).map(|i| (128.0 + (i as f32 / 20.0).sin() * 40.0) as u8).collect();
             app.frame = Some(Frame { trace, timebase: 13, vdiv: 6, trace_end: 301, running: true, app_mode: 2, ..Default::default() });
             app.status = Some(Status { version: 3, app_mode: 2, timebase: 13, vdiv: 6, running: true, ..Default::default() });
-            let mut w = Win { ctx, app, t: 0.0, pos: Pos2::new(5.0, 5.0) };
+            let mut w = Win { ctx, app, t: 0.0, pos: Pos2::new(5.0, 5.0), size: Vec2::new(1360.0, 820.0) };
             for _ in 0..4 {
                 w.step(vec![]);
             }
@@ -1872,7 +1950,7 @@ mod ui_tests {
         }
         fn step(&mut self, events: Vec<Event>) {
             let mut input = RawInput::default();
-            input.screen_rect = Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(1360.0, 820.0)));
+            input.screen_rect = Some(Rect::from_min_size(Pos2::ZERO, self.size));
             input.time = Some(self.t);
             self.t += 0.016;
             input.events = events;
@@ -1884,18 +1962,30 @@ mod ui_tests {
             self.step(vec![Event::PointerMoved(p)]);
         }
         fn button(&mut self, pressed: bool) {
+            self.button_of(PointerButton::Primary, pressed);
+        }
+        fn button_of(&mut self, button: PointerButton, pressed: bool) {
             let pos = self.pos;
-            self.step(vec![Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers: Default::default() }]);
+            self.step(vec![Event::PointerButton { pos, button, pressed, modifiers: Default::default() }]);
         }
         fn drag(&mut self, from: Pos2, to: Pos2) {
+            self.drag_with(PointerButton::Primary, from, to);
+        }
+        fn drag_with(&mut self, button: PointerButton, from: Pos2, to: Pos2) {
             self.move_to(from);
             self.move_to(from);
-            self.button(true);
+            self.button_of(button, true);
             for i in 1..=10 {
                 self.move_to(from + (to - from) * (i as f32 / 10.0));
             }
             self.step(vec![]);
-            self.button(false);
+            self.button_of(button, false);
+            self.step(vec![]);
+        }
+        fn click_with(&mut self, button: PointerButton, at: Pos2) {
+            self.move_to(at);
+            self.button_of(button, true);
+            self.button_of(button, false);
             self.step(vec![]);
         }
         fn sent(&self, prefix: &str) -> bool {
@@ -1906,6 +1996,61 @@ mod ui_tests {
     fn scope_at(w: &Win, x: f32, y: f32) -> Pos2 {
         let plot = w.app.scope.plot_rect.expect("scope was not drawn");
         Pos2::new(plot.left() + x / 300.0 * plot.width(), plot.bottom() - (y - 28.0) / 200.0 * plot.height())
+    }
+
+    /// The top bar's actions go to a second row when the window is narrow (they overlapped the view
+    /// buttons at 1360 px), and stay in one row on a wide window.
+    #[test]
+    fn top_bar_wraps_when_narrow() {
+        for (lang, width, wrapped) in [("en", 1360.0, true), ("pl", 1360.0, true), ("en", 1900.0, false), ("pl", 1360.0 * 1.5, false)] {
+            let mut w = Win::new();
+            i18n::set_language(lang);
+            w.size = Vec2::new(width, 820.0);
+            w.app.mode = ViewMode::Deep;
+            for _ in 0..4 {
+                w.step(vec![]);
+            }
+            assert_eq!(w.app.top_wrapped, wrapped, "{lang} {width}: right side {} px", w.app.top_right_w);
+        }
+        i18n::set_language(&i18n::initial_language());
+    }
+
+    /// Every character the program shows can be drawn (a missing one is an empty box):
+    /// non-ASCII characters inside string literals of the sources and in the Polish translation.
+    #[test]
+    fn all_shown_characters_have_glyphs() {
+        let w = Win::new();
+        let sources = [
+            include_str!("main.rs"), include_str!("scope.rs"), include_str!("deep_view.rs"), include_str!("spectrum_view.rs"),
+            include_str!("bode.rs"), include_str!("measure.rs"), include_str!("bin/dso510-calibrate.rs"), include_str!("../lang/pl.txt"),
+        ];
+        let mut missing = std::collections::BTreeSet::new();
+        for (k, src) in sources.iter().enumerate() {
+            for line in src.lines() {
+                let t = line.trim_start();
+                if t.starts_with("//") || t.starts_with('#') {
+                    continue;
+                }
+                // translation lines: everything; source lines: only between quotes
+                let shown: String = if k == sources.len() - 1 {
+                    line.to_string()
+                } else {
+                    line.split('"').skip(1).step_by(2).collect()
+                };
+                for c in shown.chars().filter(|c| !c.is_ascii()) {
+                    // not in egui's fonts: Windows draws it from its own symbol / emoji fonts (eframe's
+                    // system font fallback), which works for these blocks; others (e.g. the fullwidth
+                    // "＋" of the CJK fonts) came out as empty boxes
+                    let system = matches!(c as u32, 0x2190..=0x21FF | 0x2300..=0x23FF | 0x25A0..=0x25FF | 0x2600..=0x27BF | 0x1F300..=0x1FAFF);
+                    for font in [egui::FontId::proportional(14.0), egui::FontId::monospace(14.0)] {
+                        if !system && !w.ctx.fonts_mut(|f| f.has_glyph(&font, c)) {
+                            missing.insert(format!("{c} U+{:04X} ({:?})", c as u32, font.family));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(missing.is_empty(), "characters without a glyph: {missing:?}");
     }
 
     #[test]
@@ -2236,6 +2381,66 @@ mod ui_tests {
             w.step(vec![]);
         }
         assert_eq!(w.app.deep_view.window(), before, "view moved although following is off");
+    }
+
+    /// Time selection in Full memory: right-drag over the plot or left-drag on the time axis selects,
+    /// the measurements then use the selected samples, the edges can be dragged, a double-click inside
+    /// zooms to it, a right click removes it; a left drag over the plot still pans.
+    #[test]
+    fn full_memory_time_selection_in_the_real_window() {
+        let mut w = Win::new();
+        w.app.mode = ViewMode::Deep;
+        w.app.deep_history.push_back(deep_capture());
+        for _ in 0..3 {
+            w.step(vec![]);
+        }
+        let plot = w.app.deep_view.plot_rect.expect("deep view was not drawn");
+        let at = |fx: f32, fy: f32| Pos2::new(plot.left() + plot.width() * fx, plot.top() + plot.height() * fy);
+
+        // right-drag over the plot: from 30 % to 50 % of the window
+        w.drag_with(PointerButton::Secondary, at(0.3, 0.5), at(0.5, 0.5));
+        let (a, b) = w.app.deep_view.selection.expect("right-drag made no selection");
+        assert!(b > a);
+        assert!(w.app.deep_selected, "measurements do not use the selection");
+        let (sa, sb) = w.app.deep_visible;
+        let n = w.app.deep_history.back().unwrap().len();
+        let frac = (sb - sa) as f64 / n as f64;
+        assert!((frac - 0.2).abs() < 0.02, "selection holds {frac:.3} of the record, expected 0.2");
+        assert!(w.app.deep_view.window().is_none(), "selecting must not zoom");
+
+        // drag the right edge further right
+        w.drag(at(0.5, 0.5), at(0.6, 0.5));
+        let (a2, b2) = w.app.deep_view.selection.unwrap();
+        assert!((a2 - a).abs() < 1e-12 && b2 > b, "edge drag did not move the right edge");
+
+        // double-click inside: zoom to it
+        w.move_to(at(0.45, 0.5));
+        for _ in 0..2 {
+            w.button(true);
+            w.button(false);
+        }
+        w.step(vec![]);
+        let (t0, t1) = w.app.deep_view.window().expect("double-click did not zoom");
+        assert!(t0 <= a2 && t1 >= b2 && (t1 - t0) < (b2 - a2) * 1.1, "window {t0}..{t1} vs selection {a2}..{b2}");
+
+        // right click: no selection; measurements from the window again
+        w.click_with(PointerButton::Secondary, at(0.5, 0.5));
+        assert!(w.app.deep_view.selection.is_none(), "right click kept the selection");
+        w.step(vec![]);
+        assert!(!w.app.deep_selected);
+
+        // left drag on the time axis under the plot selects too, a left drag over the plot pans
+        w.app.deep_view.fit_all();
+        w.step(vec![]);
+        let axis_y = plot.bottom() + 15.0;
+        w.drag(Pos2::new(at(0.2, 0.0).x, axis_y), Pos2::new(at(0.4, 0.0).x, axis_y));
+        assert!(w.app.deep_view.selection.is_some(), "drag on the time axis made no selection");
+        w.app.deep_view.zoom(w.app.deep_history.back().unwrap(), 0.5);
+        let before = w.app.deep_view.window();
+        let sel = w.app.deep_view.selection;
+        w.drag(at(0.75, 0.3), at(0.85, 0.3));
+        assert_ne!(w.app.deep_view.window(), before, "left drag no longer pans");
+        assert_eq!(w.app.deep_view.selection, sel, "panning changed the selection");
     }
 
     #[test]

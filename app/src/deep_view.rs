@@ -1,5 +1,5 @@
-//! Deep memory viewer: the complete 30100-sample record with zoom (mouse wheel), pan (drag),
-//! an overview strip, peak-preserving min/max drawing, trigger / screen-window markers and a readout.
+//! Deep memory viewer: the complete 30100-sample record with zoom (mouse wheel), pan (drag), a time
+//! selection (right-drag, or drag on the time axis) for measurements and zoom, an overview strip, peak-preserving min/max drawing, trigger / screen-window markers and a readout.
 
 use crate::deep::DeepCapture;
 use crate::i18n::{tr, trf};
@@ -13,6 +13,8 @@ const SCREEN_BAND: Color32 = Color32::from_rgba_premultiplied(30, 60, 90, 40);
 const Y_MIN: f32 = (CENTRE_PX - 4.0 * PX_PER_DIV) as f32; // code at the bottom grid line
 const Y_MAX: f32 = (CENTRE_PX + 4.0 * PX_PER_DIV) as f32;
 const OVERVIEW_H: f32 = 42.0;
+const SELECT_FILL: Color32 = Color32::from_rgba_premultiplied(40, 90, 60, 50);
+const SELECT_EDGE: Color32 = Color32::from_rgb(110, 220, 150);
 
 #[derive(Clone, Copy, Default, PartialEq)]
 enum Drag {
@@ -23,6 +25,10 @@ enum Drag {
     CursorT(usize),
     CursorV(usize),
     Trigger,
+    /// a new time selection from where the button went down
+    Select,
+    /// an edge of the selection
+    SelEdge(usize),
 }
 
 #[derive(Default)]
@@ -45,6 +51,9 @@ pub struct DeepView {
     follow_init: bool,
     /// plot rectangle of the last frame (tests)
     pub plot_rect: Option<Rect>,
+    /// time selection (seconds from the trigger, start < end): measurements, FFT and "CSV (visible)" use it
+    pub selection: Option<(f64, f64)>,
+    sel_anchor: f64,
 }
 
 pub struct DeepOutput {
@@ -52,6 +61,8 @@ pub struct DeepOutput {
     pub visible: (usize, usize),
     /// new trigger level (device units) when its line was dragged
     pub set_trigger_level: Option<i16>,
+    /// `visible` is the time selection, not the whole window
+    pub selected: bool,
 }
 
 /// "nice" tick spacing (1, 2, 5 x 10^n) for about `target` ticks over `span`
@@ -83,6 +94,14 @@ impl DeepView {
 
     pub fn fit_all(&mut self) {
         self.window = None;
+    }
+    /// show exactly the selected time range (a little margin on both sides)
+    pub fn zoom_to_selection(&mut self, c: &DeepCapture) {
+        if let Some((a, b)) = self.selection {
+            let m = (b - a) * 0.02;
+            self.follow_end = false;
+            self.set_window(c, a - m, b + m);
+        }
     }
     pub fn show_screen_window(&mut self, c: &DeepCapture) {
         self.window = Some(c.screen_window());
@@ -122,7 +141,7 @@ impl DeepView {
         let (resp, painter) = ui.allocate_painter(avail, Sense::click_and_drag());
         let full = resp.rect;
         painter.rect_filled(full, 6.0, BG);
-        let mut out = DeepOutput { visible: (0, 0), set_trigger_level: None };
+        let mut out = DeepOutput { visible: (0, 0), set_trigger_level: None, selected: false };
 
         let Some(c) = c.filter(|c| c.len() > 8) else {
             painter.text(full.center(), Align2::CENTER_CENTER, tr("Waiting for a deep-memory capture…\n(scope screen; 50 ns … 20 ms/div as a record, 50 ms/div and slower as a stream)"), FontId::proportional(16.0), Color32::from_gray(140));
@@ -175,12 +194,26 @@ impl DeepView {
         // what is under the mouse: the overview strip, a cursor line, the trigger level, else pan
         let (cur_t, cur_v, t_on, v_on) = (self.cur_t, self.cur_v, self.t_on, self.v_on);
         let trig_px = self.trig_drag.unwrap_or(c.info.trig_level as f32);
+        let selection = self.selection;
+        // the time axis under the plot: dragging there selects
+        let axis = Rect::from_x_y_ranges(plot.x_range(), plot.bottom() + 2.0..=full.bottom());
         let pick = |p: Pos2| -> Drag {
             if overview.expand(4.0).contains(p) {
                 return Drag::Overview;
             }
+            if axis.contains(p) {
+                return Drag::Select;
+            }
             let mut best = (9.0f32, Drag::Pan);
             if plot.expand(14.0).contains(p) {
+                if let Some((a, b)) = selection {
+                    for (i, t) in [a, b].into_iter().enumerate() {
+                        let x = plot.left() + ((t - t0) / (t1 - t0)) as f32 * plot.width();
+                        if (x - p.x).abs() < best.0 {
+                            best = ((x - p.x).abs(), Drag::SelEdge(i));
+                        }
+                    }
+                }
                 if t_on {
                     for i in 0..2 {
                         let x = plot.left() + ((cur_t[i] - t0) / (t1 - t0)) as f32 * plot.width();
@@ -210,6 +243,15 @@ impl DeepView {
         if resp.drag_started() {
             let origin = ui.input(|i| i.pointer.press_origin()).or(resp.interact_pointer_pos());
             self.drag = origin.map(&pick).unwrap_or(Drag::None);
+            // right button or Shift: always a new selection
+            let select = resp.dragged_by(egui::PointerButton::Secondary) || ui.input(|i| i.modifiers.shift);
+            if select && !matches!(self.drag, Drag::Overview) {
+                self.drag = Drag::Select;
+            }
+            if let (Drag::Select, Some(p)) = (self.drag, origin) {
+                self.sel_anchor = t_at(p.x);
+                self.selection = None;
+            }
             if self.drag == Drag::Trigger {
                 self.trig_drag = Some(c.info.trig_level as f32);
             }
@@ -233,12 +275,27 @@ impl DeepView {
                 (Drag::CursorT(i), Some(p)) => self.cur_t[i] = t_at(p.x),
                 (Drag::CursorV(i), Some(p)) => self.cur_v[i] = code_at(p.y).clamp(Y_MIN, Y_MAX),
                 (Drag::Trigger, Some(p)) => self.trig_drag = Some((code_at(p.y) - CENTRE_PX as f32).clamp(-100.0, 100.0)),
+                (Drag::Select, Some(p)) => {
+                    let t = t_at(p.x);
+                    self.selection = Some((self.sel_anchor.min(t), self.sel_anchor.max(t)));
+                }
+                (Drag::SelEdge(i), Some(p)) => {
+                    if let Some(sel) = self.selection.as_mut() {
+                        if i == 0 { sel.0 = t_at(p.x) } else { sel.1 = t_at(p.x) }
+                    }
+                }
                 _ => {}
             }
         }
         if resp.drag_stopped() {
             if self.drag == Drag::Trigger {
                 out.set_trigger_level = self.trig_drag.map(|l| l.round() as i16);
+            }
+            if matches!(self.drag, Drag::Select | Drag::SelEdge(_)) {
+                // edges in order; narrower than 3 pixels or 2 samples: no selection (a click)
+                self.selection = self.selection
+                    .map(|(a, b)| (a.min(b), a.max(b)))
+                    .filter(|(a, b)| (b - a) > ((t1 - t0) * 3.0 / plot.width() as f64).max(c.dt * 2.0));
             }
             self.drag = Drag::None;
             self.trig_drag = None;
@@ -250,13 +307,23 @@ impl DeepView {
                 self.set_window(c, m - span / 2.0, m + span / 2.0);
             }
         }
+        // right click or Esc: no selection
+        if resp.secondary_clicked() || (resp.hovered() && ui.input(|i| i.key_pressed(egui::Key::Escape))) {
+            self.selection = None;
+        }
         if resp.double_clicked() {
-            self.window = None;
+            let in_sel = resp.interact_pointer_pos().zip(self.selection).is_some_and(|(p, (a, b))| (a..=b).contains(&t_at(p.x)) && plot.contains(p));
+            if in_sel {
+                self.zoom_to_selection(c);
+            } else {
+                self.window = None;
+            }
         }
         // the mouse pointer shows what can be dragged
         let over = if self.drag == Drag::None { resp.hover_pos().map(&pick) } else { Some(self.drag) };
         match over {
-            Some(Drag::CursorT(_)) => ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal),
+            Some(Drag::CursorT(_)) | Some(Drag::SelEdge(_)) => ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal),
+            Some(Drag::Select) => ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair),
             Some(Drag::CursorV(_)) | Some(Drag::Trigger) => ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical),
             Some(Drag::Overview) => ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand),
             Some(Drag::Pan) if self.window.is_some() => ui.ctx().set_cursor_icon(if self.drag == Drag::Pan { egui::CursorIcon::Grabbing } else { egui::CursorIcon::Grab }),
@@ -317,11 +384,28 @@ impl DeepView {
         if band.width() > 0.0 {
             clip.rect_filled(band, 0.0, SCREEN_BAND);
         }
+        if let Some((a, b)) = self.selection {
+            let (xa, xb) = (x_of(a), x_of(b));
+            clip.rect_filled(Rect::from_x_y_ranges(xa.max(plot.left() - 1.0)..=xb.min(plot.right() + 1.0), plot.y_range()), 0.0, SELECT_FILL);
+            for x in [xa, xb] {
+                clip.line_segment([Pos2::new(x, plot.top()), Pos2::new(x, plot.bottom())], Stroke::new(1.5, SELECT_EDGE));
+            }
+            // also on the overview strip
+            painter.rect_filled(Rect::from_x_y_ranges(ox(a).max(overview.left())..=ox(b).min(overview.right()).max(ox(a) + 1.0), overview.y_range()), 0.0, SELECT_FILL);
+        }
 
         // ---- samples ----
         let i0 = c.index_at(t0).floor().max(0.0) as usize;
         let i1 = (c.index_at(t1).ceil() as usize + 1).min(n);
         out.visible = (i0, i1);
+        if let Some((a, b)) = self.selection {
+            let sa = c.index_at(a).ceil().clamp(0.0, n as f64) as usize;
+            let sb = ((c.index_at(b).floor() + 1.0).clamp(0.0, n as f64) as usize).max(sa);
+            if sb > sa + 1 {
+                out.visible = (sa, sb);
+                out.selected = true;
+            }
+        }
         let spp = (i1 - i0) as f32 / plot.width();
         if spp > 1.5 {
             // peak-preserving: one min/max segment per screen column, joined
@@ -395,6 +479,17 @@ impl DeepView {
             let r = painter.text(Pos2::new(plot.right() - 8.0, plot.top() + 6.0), Align2::RIGHT_TOP, text, FontId::proportional(13.0), Color32::BLACK);
             painter.rect_filled(r.expand(4.0), 3.0, col);
             painter.text(Pos2::new(plot.right() - 8.0, plot.top() + 6.0), Align2::RIGHT_TOP, text, FontId::proportional(13.0), Color32::BLACK);
+        }
+
+        // ---- selection read-out: at its top, inside the plot ----
+        if let Some((a, b)) = self.selection {
+            let (sa, sb) = out.visible;
+            let dt = b - a;
+            let text = trf("Δt {}   1/Δt {}   {} samples", &[&eng(dt, "s"), &eng(1.0 / dt, "Hz"), &(if out.selected { sb - sa } else { 0 })]);
+            let xm = ((x_of(a) + x_of(b)) / 2.0).min(plot.right() - 120.0).max(plot.left() + 120.0).min(plot.right()); // (narrow plot: no panic)
+            let r = painter.text(Pos2::new(xm, plot.top() + 26.0), Align2::CENTER_TOP, &text, FontId::monospace(11.0), Color32::BLACK);
+            painter.rect_filled(r.expand(3.0), 3.0, SELECT_EDGE);
+            painter.text(Pos2::new(xm, plot.top() + 26.0), Align2::CENTER_TOP, text, FontId::monospace(11.0), Color32::BLACK);
         }
 
         // ---- readout under the mouse ----

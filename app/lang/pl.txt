@@ -99,7 +99,7 @@ the part the scope shows = fragment widoczny na ekranie oscyloskopu
 CSV (all) = CSV (całość)
 CSV (visible) = CSV (widoczne)
 Raw .bin = Surowe .bin
-Wheel: zoom · drag: pan · drag the strip on top: move · double-click: fit. The blue band is the scope's screen. Acquisition pauses while a record is sent (about 5 captures/s). = Kółko: powiększenie · przeciąganie: przesuwanie · pasek u góry: szybkie przejście · dwuklik: cały rekord. Niebieski pas to ekran oscyloskopu. Akwizycja czeka na wysłanie rekordu (ok. 5 rekordów/s).
+Wheel: zoom · drag: pan · right-drag or drag on the time axis: select a range · drag the strip on top: move · double-click: fit (inside the selection: zoom to it). The blue band is the scope's screen. Acquisition pauses while a record is sent (about 5 captures/s). = Kółko: powiększenie · przeciąganie: przesuwanie · prawy przycisk lub przeciąganie po osi czasu: zaznaczenie zakresu · pasek u góry: szybkie przejście · dwuklik: cały rekord (w zaznaczeniu: powiększenie do niego). Niebieski pas to ekran oscyloskopu. Akwizycja czeka na wysłanie rekordu (ok. 5 rekordów/s).
 incomplete transfers: {} = niepełne transfery: {}
 Waiting for a deep-memory capture…\n(scope screen, time base 50 ns … 20 ms/div) = Czekam na rekord pełnej pamięci…\n(ekran oscyloskopu, podstawa czasu 50 ns … 20 ms/dz)
 record = rekord
@@ -246,7 +246,7 @@ Full memory gives a fine spectrum (up to 30100 samples); the screen trace only 3
 Fundamental = Podstawowa
 Level = Poziom
 Noise floor = Poziom szumu
-Wheel: zoom · drag: pan · double-click: whole range. In Full memory the spectrum follows the visible window. = Kółko: powiększenie · przeciąganie: przesuwanie · dwuklik: cały zakres. W pełnej pamięci widmo liczy się z widocznego fragmentu.
+Wheel: zoom · drag: pan · double-click: whole range. In Full memory the spectrum follows the visible window or the selection. = Kółko: powiększenie · przeciąganie: przesuwanie · dwuklik: cały zakres. W pełnej pamięci widmo liczy się z widocznego fragmentu albo z zaznaczenia.
 No spectrum yet = Brak widma
 samples = próbek
 Rectangular = Prostokątne
@@ -257,7 +257,7 @@ Flat top = Flat top
 # ---- podpowiedzi [?] ----
 Appearance of the trace. Persistence leaves faded older frames behind the current one, which shows jitter and noise. = Wygląd przebiegu. Poświata zostawia za bieżącą klatką przygaszone starsze klatki, dzięki czemu widać drgania (jitter) i szum.
 Number of previous frames drawn faded behind the current one (0 means off). Good for spotting jitter, noise and rare glitches. = Liczba poprzednich klatek rysowanych przygaszonym kolorem za bieżącą (0 = wyłączone). Pomaga wychwycić drgania, szum i rzadkie zakłócenia.
-Automatic measurements of the shown trace: levels, frequency, duty cycle and edge times. They are computed in this program; in Full memory from the visible window. = Automatyczne pomiary pokazanego przebiegu: poziomy, częstotliwość, wypełnienie i czasy zboczy. Liczy je ten program; w pełnej pamięci z widocznego fragmentu.
+Automatic measurements of the shown trace: levels, frequency, duty cycle and edge times. They are computed in this program; in Full memory from the visible window or the selected time range. = Automatyczne pomiary pokazanego przebiegu: poziomy, częstotliwość, wypełnienie i czasy zboczy. Liczy je ten program; w pełnej pamięci z widocznego fragmentu albo z zaznaczonego zakresu czasu.
 Running min / mean / max of each measurement over consecutive acquisitions, to judge stability and jitter. They reset when time/div or V/div change. = Bieżące min / średnia / max każdego pomiaru z kolejnych akwizycji, do oceny stabilności i drgań. Zerują się przy zmianie czasu/dz lub V/dz.
 Every acquisition with all 30100 samples instead of the 301 points of the screen: about 100x finer detail, zoom, precise measurements and a fine spectrum. = Każda akwizycja ze wszystkimi 30 100 próbek zamiast 301 punktów z ekranu: ok. 100× więcej szczegółów, powiększanie, dokładne pomiary i dokładne widmo.
 Number of samples of this acquisition and the time they cover. = Liczba próbek tej akwizycji i czas, który obejmują.
@@ -415,3 +415,15 @@ You need: a DC voltage you know, measured with a multimeter (a battery, 3.3 V or
 
 Cofnięcie: "Przywróć wartość z początku" albo "Ustaw współczynnik 1,0", potem znowu wyłącz przyciskiem.
 Internal error: = Błąd wewnętrzny:
+Noise reject = Odrzucanie szumu
+Stops noise on the signal from shifting the trigger point: an edge counts only after the signal went 0.4 div to the other side of the level, so the picture stops jittering. The level then has to be at least 0.4 div inside the signal's swing (above its lowest point for a rising edge, below its highest for a falling one). = Szum na sygnale nie przesuwa punktu wyzwolenia: zbocze liczy się dopiero wtedy, gdy sygnał wcześniej odszedł o 0,4 dz. na drugą stronę poziomu, więc obraz przestaje drgać. Poziom musi wtedy leżeć co najmniej 0,4 dz. wewnątrz zakresu sygnału (nad jego najniższym punktem dla zbocza narastającego, pod najwyższym dla opadającego).
+Needs firmware v4.19 or newer. = Wymaga firmware v4.19 lub nowszego.
+zoom in = powiększ
+zoom out = pomniejsz
+from {} samples in the selection = z {} próbek zaznaczenia
+Zoom to selection = Powiększ zaznaczenie
+Clear selection = Usuń zaznaczenie
+show exactly the selected time range (or double-click inside it) = pokaż dokładnie zaznaczony zakres czasu (albo dwuklik w zaznaczenie)
+measurements again from the whole visible window (or right-click / Esc) = pomiary znów z całego widocznego fragmentu (albo prawy klik / Esc)
+Select a time range: drag with the right mouse button over the plot, or with the left button along the time axis under it (Shift + left drag works too). The selection shows its duration Δt and 1/Δt; the measurements, the FFT and "CSV (visible)" then use only the selected samples. Its edges can be dragged. = Zaznaczanie zakresu czasu: przeciągnij prawym przyciskiem myszy po wykresie albo lewym wzdłuż osi czasu pod nim (działa też Shift + lewy). Zaznaczenie pokazuje swój czas trwania Δt i 1/Δt; pomiary, FFT i „CSV (widoczne)” liczą się wtedy tylko z zaznaczonych próbek. Krawędzie zaznaczenia można przeciągać.
+Δt {}   1/Δt {}   {} samples = Δt {}   1/Δt {}   {} próbek
